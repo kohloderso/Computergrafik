@@ -56,7 +56,8 @@ GLuint ShaderProgram;
 
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
-float ModelMatrix[16]; /* Model matrix */ 
+float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixCube[16]; /* Model matrix */
+
 
 /* Transformation matrices for initial position */
 float TranslateOrigin[16];
@@ -65,7 +66,16 @@ float RotateX[16];
 float RotateZ[16];
 float InitialTransform[16];
 
-
+GLfloat vertex_buffer_reference_points[] = {
+        0, 0,1.75,
+        0,0,-1.75,
+        1,0,-1.75,
+        0,0,0,
+        0,0,0,
+        0,0,0,
+        0,0,0,
+        0,0,0
+};
 GLfloat vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
     -1.0, -1.0,  1.0,
      1.0, -1.0,  1.0,
@@ -244,15 +254,25 @@ void Display()
         fprintf(stderr, "Could not bind uniform ModelMatrix\n");
         exit(-1);
     }
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrix);
 
     /* draw cube */
     glBindVertexArray(VAO_cube);
-    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    SetIdentityMatrix(ModelMatrixCube);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCube);
+    glPointSize(3);
+    glDrawElements(GL_POINTS, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+
+    /* Draw poles */
+    int i;
+    for(i = 0; i < 6; i++) {
+        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
+        glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    }
 
     glBindVertexArray(0);
 
@@ -271,15 +291,32 @@ void Display()
 
 void OnIdle()
 {
-    float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI); 
+    float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
     float RotationMatrixAnim[16];
+    float scaling[16];
+    float translation[16];
 
     /* Time dependent rotation */
     SetRotationY(angle, RotationMatrixAnim);
 
-    /* Apply model rotation; finally move cube down */
-    MultiplyMatrix(RotationMatrixAnim, InitialTransform, ModelMatrix);
-    MultiplyMatrix(TranslateDown, ModelMatrix, ModelMatrix);
+    /* Set Transformation for Platform */
+    SetScaling(0.25, 0.25, 0.25, scaling);  // scaling
+
+    MultiplyMatrix(RotationMatrixAnim, scaling, ModelMatrixPlatform);   // add rotation to the platform
+
+    /* Set Transformation for the 6 Poles  */
+    SetScaling(0.005, 2, 0.005, scaling);
+    int i;
+    float transX, transZ;
+    float transY = 2;
+    for(i = 0; i < 6; i++) {
+        transX = vertex_buffer_platform[(i+1)*3]/4;
+        transZ = vertex_buffer_platform[(i+1)*3+2]/4;
+        printf("%f\n", transZ);
+        SetTranslation(transX, transY, transZ, translation);
+        MultiplyMatrix(translation, scaling, ModelMatrixPole[i]);
+        MultiplyMatrix(RotationMatrixAnim, ModelMatrixPole[i], ModelMatrixPole[i]);
+    }
 
     /* Request redrawing forof window content */  
     glutPostRedisplay();
@@ -322,6 +359,10 @@ void SetupDataBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
     glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_platform), color_buffer_platform, GL_STATIC_DRAW);
 
+    /* reference points */
+    glGenBuffers(1, &VBO_cube);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_reference_points), vertex_buffer_reference_points, GL_STATIC_DRAW);
     /* Stange
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -495,7 +536,6 @@ void Initialize(void)
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers();
 
-
     SetupVertexArrayObjects();
 
     /* Setup shaders and shader program */
@@ -504,7 +544,11 @@ void Initialize(void)
     /* Initialize matrices */
     SetIdentityMatrix(ProjectionMatrix);
     SetIdentityMatrix(ViewMatrix);
-    SetIdentityMatrix(ModelMatrix);
+    SetIdentityMatrix(ModelMatrixPlatform);
+    int i;
+    for(i = 0; i < 6; i++) {
+        SetIdentityMatrix(ModelMatrixPole[i]);
+    }
 
     /* Set projection transform */
     float fovy = 45.0;
@@ -515,20 +559,8 @@ void Initialize(void)
 
     /* Set viewing transform */
     float camera_disp = -10.0;
-    SetTranslation(0.0, 0.0, camera_disp, ViewMatrix);
-
-    /* Translate and rotate cube onto tip */
-    //SetTranslation(1, 1, 1, TranslateOrigin);
-    //SetRotationX(-45, RotateX);
-    //SetRotationZ(35, RotateZ);
-
-    /* Translate down */	
-    SetTranslation(0, -sqrtf(sqrtf(2.0) * 1.0), 0, TranslateDown);
-
-    /* Initial transformation matrix */
-    //MultiplyMatrix(RotateX, TranslateOrigin, InitialTransform);
-    //MultiplyMatrix(RotateZ, InitialTransform, InitialTransform);
-    SetScaling(0.25, 0.5, 0.25, InitialTransform);
+    float camera_up = -2;
+    SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
 }
 
 
