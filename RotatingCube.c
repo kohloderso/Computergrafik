@@ -35,15 +35,15 @@
 /*----------------------------------------------------------------*/
 
 /* Define handle to a vertex buffer object */
-GLuint VBO_cube, VBO_platform;
+GLuint VBO_cube, VBO_platform, VBO_roof;
 
 /* Define handle to a color buffer object */
-GLuint CBO_cube, CBO_platform;
+GLuint CBO_cube, CBO_platform, CBO_roof;
 
 /* Define handle to an index buffer object */
-GLuint IBO_cube, IBO_platform;
+GLuint IBO_cube, IBO_platform, IBO_roof;
 
-GLuint VAO_cube, VAO_platform;
+GLuint VAO_cube, VAO_platform, VAO_roof;
 
 /* Indices to vertex attributes; in this case positon and color */ 
 enum DataID {vPosition = 0, vColor = 1}; 
@@ -56,7 +56,7 @@ GLuint ShaderProgram;
 
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
-float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixCube[16]; /* Model matrix */
+float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixCube[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16]; /* Model matrix */
 
 
 /* Transformation matrices for initial position */
@@ -66,16 +66,6 @@ float RotateX[16];
 float RotateZ[16];
 float InitialTransform[16];
 
-GLfloat vertex_buffer_reference_points[] = {
-        0, 0,1.75,
-        0,0,-1.75,
-        1,0,-1.75,
-        0,0,0,
-        0,0,0,
-        0,0,0,
-        0,0,0,
-        0,0,0
-};
 GLfloat vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
     -1.0, -1.0,  1.0,
      1.0, -1.0,  1.0,
@@ -128,7 +118,6 @@ GLfloat vertex_buffer_platform[] = {
         -4, -1, -7,
         -8, -1, 0,
         -4, -1, 7,
-
 };
 
 GLfloat color_buffer_platform[] = {
@@ -175,42 +164,67 @@ GLushort index_buffer_platform[] = {
         1,13,8
 };
 
-GLfloat vertex_buffer_stange[] = { /* Dach Koordinaten in XYZ */
-        0.45,0.025,0,
-        0.5,0.025,0,
-        0.5,0.025,1.3,
-        0.45,0.025,1.3,
-        0.45,-0.025,0,
-        0.5,-0.025,0,
-        0.5,-0.025,1.3,
-        0.45,-0.025,1.3,
+GLfloat vertex_buffer_roof[] = {
+        0, 5, 0,
+        4, 0, 7,
+        8, 0, 0,
+        4, 0 , -7,
+        -4, 0, -7,
+        -8, 0, 0,
+        -4, 0, 7,
+        0, -1, 0,
+        4, -1, 7,
+        8, -1, 0,
+        4, -1 , -7,
+        -4, -1, -7,
+        -8, -1, 0,
+        -4, -1, 7,
 };
 
-GLfloat color_buffer_stange[] = { /* RGB color values for 8 vertices */
-        0.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 1.0,
-        0.0, 1.0, 1.0,
+GLfloat color_buffer_roof[] = {
         0.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
-        1.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0
 };
 
-GLushort index_buffer_stange[] = { /* Indices for all triangles */
-        0,1,4,
-        1,4,5,
-        7,6,2,
-        7,3,2,
-        0,3,2,
-        0,1,2,
-        1,2,5,
-        2,6,5,
-        7,6,5,
-        7,4,5,
-        7,3,0,
-        0,4,3,
+GLushort index_buffer_roof[] = {
+        0,1,2,  // top
+        0,2,3,
+        0,3,4,
+        0,4,5,
+        0,5,6,
+        0,6,1,
+        7,8,9,  // bottom
+        7,9,10,
+        7,10,11,
+        7,11,12,
+        7,12,13,
+        7,13,8,
+        1,2,8,  //sides
+        2,8,9,
+        2,3,9,
+        3,9,10,
+        3,4,10,
+        4,10,11,
+        4,5,11,
+        5,11,12,
+        5,6,12,
+        6,12,13,
+        6,1,13,
+        1,13,8
 };
+
 
 /*----------------------------------------------------------------*/
 
@@ -255,12 +269,12 @@ void Display()
         exit(-1);
     }
 
-    /* draw cube */
+    /* draw cube *//*
     glBindVertexArray(VAO_cube);
     SetIdentityMatrix(ModelMatrixCube);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCube);
     glPointSize(3);
-    glDrawElements(GL_POINTS, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_POINTS, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);*/
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
@@ -273,6 +287,15 @@ void Display()
         glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
         glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     }
+
+    /* Draw middle pole */
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
+    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+
+    /* Draw roof */
+    glBindVertexArray(VAO_roof);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
+    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(0);
 
@@ -300,11 +323,10 @@ void OnIdle()
     SetRotationY(angle, RotationMatrixAnim);
 
     /* Set Transformation for Platform */
-    SetScaling(0.25, 0.25, 0.25, scaling);  // scaling
+    SetScaling(0.25, 0.25, 0.25, scaling);
+    MultiplyMatrix(RotationMatrixAnim, scaling, ModelMatrixPlatform);
 
-    MultiplyMatrix(RotationMatrixAnim, scaling, ModelMatrixPlatform);   // add rotation to the platform
-
-    /* Set Transformation for the 6 Poles  */
+    /* Set Transformation for the 6 outer Poles  */
     SetScaling(0.005, 2, 0.005, scaling);
     int i;
     float transX, transZ;
@@ -312,13 +334,26 @@ void OnIdle()
     for(i = 0; i < 6; i++) {
         transX = vertex_buffer_platform[(i+1)*3]/4;
         transZ = vertex_buffer_platform[(i+1)*3+2]/4;
-        printf("%f\n", transZ);
         SetTranslation(transX, transY, transZ, translation);
         MultiplyMatrix(translation, scaling, ModelMatrixPole[i]);
         MultiplyMatrix(RotationMatrixAnim, ModelMatrixPole[i], ModelMatrixPole[i]);
     }
 
-    /* Request redrawing forof window content */  
+    /* Set Transformation for middle pole */
+    SetScaling(0.01, 2, 0.01, scaling);
+    SetTranslation(0, 2, 0, translation);
+    MultiplyMatrix(translation, scaling, ModelMatrixMiddlePole);
+    MultiplyMatrix(RotationMatrixAnim, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
+
+    /* Set Transformation for roof */
+    SetScaling(0.25, 0.25, 0.25, scaling);
+    SetTranslation(0,2,0, translation);
+    MultiplyMatrix(translation, scaling, ModelMatrixRoof);
+    MultiplyMatrix(RotationMatrixAnim, ModelMatrixRoof, ModelMatrixRoof);
+
+    
+
+    /* Request redrawing of window content */
     glutPostRedisplay();
 }
 
@@ -359,27 +394,24 @@ void SetupDataBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
     glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_platform), color_buffer_platform, GL_STATIC_DRAW);
 
-    /* reference points */
-    glGenBuffers(1, &VBO_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_reference_points), vertex_buffer_reference_points, GL_STATIC_DRAW);
-    /* Stange
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_stange), vertex_buffer_stange, GL_STATIC_DRAW);
+    /* roof */
+    glGenBuffers(1, &VBO_roof);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_roof);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_roof), vertex_buffer_roof, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_data_stange), index_buffer_data_stange, GL_STATIC_DRAW);
+    glGenBuffers(1, &IBO_roof);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_roof), index_buffer_roof, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_data_stange), color_buffer_data_stange, GL_STATIC_DRAW); */
+    glGenBuffers(1, &CBO_roof);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_roof), color_buffer_roof, GL_STATIC_DRAW);
 }
 
 void SetupVertexArrayObjects() {
     glGenVertexArrays(1, &VAO_platform);
     glGenVertexArrays(1, &VAO_cube);
+    glGenVertexArrays(1, &VAO_roof);
     GLint size; // don't really need this anymore, maybe change it to passing 0 in the glGetBufferParameteriv
 
     /* platform */
@@ -396,7 +428,6 @@ void SetupVertexArrayObjects() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
-
     /* cube */
     glBindVertexArray(VAO_cube);
 
@@ -409,6 +440,20 @@ void SetupVertexArrayObjects() {
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+
+    /* roof */
+    glBindVertexArray(VAO_roof);
+
+    glEnableVertexAttribArray(vPosition);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_roof);
+    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glEnableVertexAttribArray(vColor);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
+    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
 }
@@ -545,6 +590,7 @@ void Initialize(void)
     SetIdentityMatrix(ProjectionMatrix);
     SetIdentityMatrix(ViewMatrix);
     SetIdentityMatrix(ModelMatrixPlatform);
+    SetIdentityMatrix(ModelMatrixRoof);
     int i;
     for(i = 0; i < 6; i++) {
         SetIdentityMatrix(ModelMatrixPole[i]);
