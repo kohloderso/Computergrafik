@@ -35,13 +35,13 @@
 /*----------------------------------------------------------------*/
 
 /* Define handle to a vertex buffer object */
-GLuint VBO, VBO2;
+GLuint VBO_cube, VBO_platform;
 
 /* Define handle to a color buffer object */
-GLuint CBO, CBO2;
+GLuint CBO_cube, CBO_platform;
 
 /* Define handle to an index buffer object */
-GLuint IBO, IBO2;
+GLuint IBO_cube, IBO_platform;
 
 GLuint VAO_cube, VAO_platform;
 
@@ -66,7 +66,7 @@ float RotateZ[16];
 float InitialTransform[16];
 
 
-GLfloat vertex_buffer_data[] = { /* 8 cube vertices XYZ */
+GLfloat vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
     -1.0, -1.0,  1.0,
      1.0, -1.0,  1.0,
      1.0,  1.0,  1.0,
@@ -77,7 +77,7 @@ GLfloat vertex_buffer_data[] = { /* 8 cube vertices XYZ */
     -1.0,  1.0, -1.0,
 };   
 
-GLfloat color_buffer_data[] = { /* RGB color values for 8 vertices */
+GLfloat color_buffer_cube[] = { /* RGB color values for 8 vertices */
     0.0, 0.0, 1.0,
     1.0, 0.0, 1.0,
     1.0, 1.0, 1.0,
@@ -88,7 +88,7 @@ GLfloat color_buffer_data[] = { /* RGB color values for 8 vertices */
     0.0, 1.0, 0.0,
 }; 
 
-GLushort index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
+GLushort index_buffer_cube[] = { /* Indices of 6*2 triangles (6 sides) */
     0, 1, 2,
     2, 3, 0,
     1, 5, 6,
@@ -103,7 +103,7 @@ GLushort index_buffer_data[] = { /* Indices of 6*2 triangles (6 sides) */
     6, 7, 3,
 };
 
-GLfloat vertex_buffer_data2[] = {
+GLfloat vertex_buffer_platform[] = {
         0, 0, 0,
         4, 0, 7,
         8, 0, 0,
@@ -121,7 +121,7 @@ GLfloat vertex_buffer_data2[] = {
 
 };
 
-GLfloat color_buffer_data2[] = {
+GLfloat color_buffer_platform[] = {
         0.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
@@ -138,7 +138,7 @@ GLfloat color_buffer_data2[] = {
         0.0, 0.0, 0.0
 };
 
-GLushort index_buffer_data2[] = {
+GLushort index_buffer_platform[] = {
         0,1,2,  // top
         0,2,3,
         0,3,4,
@@ -176,7 +176,7 @@ GLfloat vertex_buffer_stange[] = { /* Dach Koordinaten in XYZ */
         0.45,-0.025,1.3,
 };
 
-GLfloat color_buffer_data_stange[] = { /* RGB color values for 8 vertices */
+GLfloat color_buffer_stange[] = { /* RGB color values for 8 vertices */
         0.0, 0.0, 1.0,
         1.0, 0.0, 1.0,
         1.0, 1.0, 1.0,
@@ -187,7 +187,7 @@ GLfloat color_buffer_data_stange[] = { /* RGB color values for 8 vertices */
         0.0, 1.0, 0.0,
 };
 
-GLushort index_buffer_data_stange[] = { /* Indices for all triangles */
+GLushort index_buffer_stange[] = { /* Indices for all triangles */
         0,1,4,
         1,4,5,
         7,6,2,
@@ -220,19 +220,7 @@ void Display()
 {
     /* Clear window; color specified in 'Initialize()' */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);   
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    GLint size; 
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
+    
     /* Associate program with shader matrices */
     GLint projectionUniform = glGetUniformLocation(ShaderProgram, "ProjectionMatrix");
     if (projectionUniform == -1) 
@@ -256,28 +244,19 @@ void Display()
         fprintf(stderr, "Could not bind uniform ModelMatrix\n");
         exit(-1);
     }
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrix);  
-
-    /* Issue draw command, using indexed triangle list */
-    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);					//start pyramids
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, CBO2);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrix);
-    glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
-    /* Disable attributes */
-    glDisableVertexAttribArray(vPosition);
-    glDisableVertexAttribArray(vColor);   
+    /* draw cube */
+    glBindVertexArray(VAO_cube);
+    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
-    /* Swap between front and back buffer */ 
+    /* Draw platform */
+    glBindVertexArray(VAO_platform);
+    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+
+    glBindVertexArray(0);
+
+    /* Swap between front and back buffer */
     glutSwapBuffers();
 }
 
@@ -317,33 +296,33 @@ void OnIdle()
 
 void SetupDataBuffers()
 {
-    /* cube
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_data), vertex_buffer_data, GL_STATIC_DRAW);
+    /* cube */
+    glGenBuffers(1, &VBO_cube);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_cube), vertex_buffer_cube, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_data), index_buffer_data, GL_STATIC_DRAW);
+    glGenBuffers(1, &IBO_cube);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_cube), index_buffer_cube, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &CBO);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_data), color_buffer_data, GL_STATIC_DRAW); */
+    glGenBuffers(1, &CBO_cube);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_cube);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_cube), color_buffer_cube, GL_STATIC_DRAW);
 
     /* platform */
-    glGenBuffers(1, &VBO2);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_data2), vertex_buffer_data2, GL_STATIC_DRAW);
+    glGenBuffers(1, &VBO_platform);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_platform);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_platform), vertex_buffer_platform, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &IBO2);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_data2), index_buffer_data2, GL_STATIC_DRAW);
+    glGenBuffers(1, &IBO_platform);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_platform), index_buffer_platform, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &CBO2);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO2);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_data2), color_buffer_data2, GL_STATIC_DRAW);
+    glGenBuffers(1, &CBO_platform);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_platform), color_buffer_platform, GL_STATIC_DRAW);
 
-    /* Stange */
+    /* Stange
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_stange), vertex_buffer_stange, GL_STATIC_DRAW);
@@ -354,24 +333,43 @@ void SetupDataBuffers()
 
     glGenBuffers(1, &CBO);
     glBindBuffer(GL_ARRAY_BUFFER, CBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_data_stange), color_buffer_data_stange, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_data_stange), color_buffer_data_stange, GL_STATIC_DRAW); */
 }
 
 void SetupVertexArrayObjects() {
-    glGenVertexArrays(1, VAO_cube);
-    glBindVertexArray(VAO_cube);
+    glGenVertexArrays(1, &VAO_platform);
+    glGenVertexArrays(1, &VAO_cube);
+    GLint size; // don't really need this anymore, maybe change it to passing 0 in the glGetBufferParameteriv
+
+    /* platform */
+    glBindVertexArray(VAO_platform);
 
     glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_platform);
     glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    GLint size;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+
+
+    /* cube */
+    glBindVertexArray(VAO_cube);
+
+    glEnableVertexAttribArray(vPosition);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
+    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glEnableVertexAttribArray(vColor);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_cube);
+    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+
 }
 
 /******************************************************************
@@ -496,6 +494,9 @@ void Initialize(void)
 
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers();
+
+
+    SetupVertexArrayObjects();
 
     /* Setup shaders and shader program */
     CreateShaderProgram();  
