@@ -269,13 +269,6 @@ void Display()
         exit(-1);
     }
 
-    /* draw cube *//*
-    glBindVertexArray(VAO_cube);
-    SetIdentityMatrix(ModelMatrixCube);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCube);
-    glPointSize(3);
-    glDrawElements(GL_POINTS, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);*/
-
     /* Draw platform */
     glBindVertexArray(VAO_platform);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
@@ -297,6 +290,13 @@ void Display()
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
+    /* Draw 6 cubes */
+    glBindVertexArray(VAO_cube);
+    for(i = 0; i < 6; i++) {
+        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
+        glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    }
+
     glBindVertexArray(0);
 
     /* Swap between front and back buffer */
@@ -314,8 +314,9 @@ void Display()
 
 void OnIdle()
 {
-    float angle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0) * (180.0/M_PI);
+    float angle = (glutGet(GLUT_ELAPSED_TIME) / 2000.0) * (180.0/M_PI);
     float RotationMatrixAnim[16];
+    float rotationX[16], rotationY[16], rotationZ[16];
     float scaling[16];
     float translation[16];
 
@@ -351,7 +352,24 @@ void OnIdle()
     MultiplyMatrix(translation, scaling, ModelMatrixRoof);
     MultiplyMatrix(RotationMatrixAnim, ModelMatrixRoof, ModelMatrixRoof);
 
-    
+    /* Set Transformation for cubes that additionally rotate around themselves */
+    SetScaling(0.25, 0.25, 0.25, scaling);
+    SetRotationX(-45, rotationX);
+    SetRotationZ(35, rotationZ);
+
+    SetRotationY(angle+30, RotationMatrixAnim);
+    transY = 0.4;
+    for(i = 0; i < 6; i++) {
+        transX = vertex_buffer_platform[(i+1)*3]/6;
+        transZ = vertex_buffer_platform[(i+1)*3 +2]/6;
+        SetTranslation(transX, transY, transZ, translation);
+        SetRotationY(-2*angle * (i%3 +1), rotationY);
+        MultiplyMatrix(rotationX, scaling, ModelMatrixCubes[i]);
+        MultiplyMatrix(rotationZ, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        MultiplyMatrix(rotationY, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        MultiplyMatrix(translation, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        MultiplyMatrix(RotationMatrixAnim, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+    }
 
     /* Request redrawing of window content */
     glutPostRedisplay();
