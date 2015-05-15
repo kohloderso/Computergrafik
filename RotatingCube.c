@@ -34,16 +34,19 @@
 
 /*----------------------------------------------------------------*/
 
+/* Flag for starting/stopping animation */
+GLboolean anim = GL_TRUE;
+
 /* Define handle to a vertex buffer object */
 GLuint VBO_cube, VBO_platform, VBO_roof;
 
 /* Define handle to a color buffer object */
-GLuint CBO_cube, CBO_platform, CBO_roof;
+GLuint CBO_cube, CBO_platform, CBO_roof, CBO_floor;
 
 /* Define handle to an index buffer object */
 GLuint IBO_cube, IBO_platform, IBO_roof;
 
-GLuint VAO_cube, VAO_platform, VAO_roof;
+GLuint VAO_cube, VAO_platform, VAO_roof, VAO_floor;
 
 /* Indices to vertex attributes; in this case positon and color */ 
 enum DataID {vPosition = 0, vColor = 1}; 
@@ -57,14 +60,33 @@ GLuint ShaderProgram;
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
 float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixCube[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16]; /* Model matrix */
-
+float ModelMatrixFloor[16];
 
 /* Transformation matrices for initial position */
 float TranslateOrigin[16];
 float TranslateDown[16];
-float RotateX[16];
-float RotateZ[16];
 float InitialTransform[16];
+
+float RotationMatrixAnimX[16];
+float RotationMatrixAnimY[16];
+float RotationMatrixAnimZ[16];
+float RotationMatrixAnimCamera[16];
+float RotationMatrixAnim[16];
+
+/* Variables for storing current rotation angles */
+float angleX, angleY, angleZ, angle = 0.0f; 
+
+/* Indices to active rotation axes */
+enum {Xaxis=0, Yaxis=1, Zaxis=2};
+int axis = 1;
+int velocity = 1;
+
+/* Reference time for animation */
+int oldTime = 0;
+
+
+float camera_disp = 0.0f;
+float camera_up = 0.0f;
 
 GLfloat vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
     -1.0, -1.0,  1.0,
@@ -86,6 +108,17 @@ GLfloat color_buffer_cube[] = { /* RGB color values for 8 vertices */
     1.0, 0.0, 0.0,
     1.0, 1.0, 0.0,
     0.0, 1.0, 0.0,
+}; 
+
+GLfloat color_buffer_floor[] = { /* RGB color values for 8 vertices */
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255,
+    220.0/255, 245.0/255, 160.0/255
 }; 
 
 GLushort index_buffer_cube[] = { /* Indices of 6*2 triangles (6 sides) */
@@ -297,10 +330,142 @@ void Display()
         glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     }
 
+    /* Draw floor */
+    glBindVertexArray(VAO_floor);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixFloor);
+    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    
     glBindVertexArray(0);
 
     /* Swap between front and back buffer */
     glutSwapBuffers();
+}
+
+/******************************************************************
+*
+* Mouse
+*
+* Function is called on mouse button press; has been seta
+* with glutMouseFunc(), x and y specify mouse coordinates,
+* but are not used here.
+*
+*******************************************************************/
+
+void Mouse(int button, int state, int x, int y) 
+{
+    if(state == GLUT_DOWN) 
+    {
+      /* Depending on button pressed, set rotation axis,
+       * turn on animation */
+        switch(button) 
+	{
+	    case GLUT_LEFT_BUTTON:    
+	        axis = Xaxis;
+		break;
+
+	    case GLUT_MIDDLE_BUTTON:  
+  	        axis = Yaxis;
+	        break;
+		
+	    case GLUT_RIGHT_BUTTON: 
+	        axis = Zaxis;
+		break;
+	}
+	anim = GL_TRUE;
+    }
+}
+
+/******************************************************************
+*
+* Keyboard
+*
+* Function to be called on key press in window; set by
+* glutKeyboardFunc(); x and y specify mouse position on keypress;
+* not used in this example 
+*
+*******************************************************************/
+
+void Keyboard(unsigned char key, int x, int y)   
+{
+    switch( key ) 
+    {
+	/* Activate model one or two 
+	case '1': 
+		model = Model1;
+		break;
+
+	case '2':
+		model = Model2; 	
+		break;*/
+
+	/* Toggle animation */
+	case '0':
+		if (anim)
+			anim = GL_FALSE;		
+		else
+			anim = GL_TRUE;
+		break;
+
+	/* Reset initial rotation of object */
+	case 'r':
+	    SetIdentityMatrix(RotationMatrixAnimX);
+	    SetIdentityMatrix(RotationMatrixAnimY);
+	    SetIdentityMatrix(RotationMatrixAnimZ);
+	    angleX = 0.0;
+	    angleY = 0.0;
+	    angleZ = 0.0;
+	    camera_disp = -10.0;
+    	    camera_up = -2;
+            anim = GL_FALSE;
+	    break;
+	    
+	case 'c': case 'C':  
+	    exit(0);    
+	    break;
+        case 'q':
+	    angleY = fmod(angleY-5.0, 360.0);
+            break;
+	case 'e':
+	  angleY = fmod(angleY+5.0, 360.0);
+            break;
+	case 'w':
+	    angleX = fmod(angleX-5.0, 360.0);
+            break;
+	case 's':
+	  angleX = fmod(angleX+5.0, 360.0);
+            break;
+	case 'a':
+	  angleZ = fmod(angleZ+5.0, 360.0);
+            break;
+	case 'd':
+	 angleZ = fmod(angleZ-5.0, 360.0);
+            break;
+	case '+':
+	  velocity++;
+	  break;
+	case '-':
+	  if(velocity > 0) {
+	    velocity--;
+	  }
+	  break;
+    case 'k':
+	  camera_disp = camera_disp + 1.0;
+	  break;
+	case 'i':
+	  if(camera_disp < 0) {
+	    camera_disp = camera_disp - 1.0;
+	  }
+	  break;
+	case 'o':
+	  camera_up = camera_up + 1.0;
+	  break;
+	case 'l':
+	  //if(camera_up < 0) {
+	    camera_up = camera_up - 1.0;
+	  break;
+    }
+
+    glutPostRedisplay();
 }
 
 
@@ -314,19 +479,50 @@ void Display()
 
 void OnIdle()
 {
-    float angle = (glutGet(GLUT_ELAPSED_TIME) / 2000.0) * (180.0/M_PI);
-    float RotationMatrixAnim[16];
     float rotationX[16], rotationY[16], rotationZ[16];
     float scaling[16];
     float translation[16];
 
+    /* Determine delta time between two frames to ensure constant animation */
+    int newTime = glutGet(GLUT_ELAPSED_TIME);
+    int delta = newTime - oldTime;
+    oldTime = newTime;
+    float angle = (glutGet(GLUT_ELAPSED_TIME) / 2000.0) * (180.0/M_PI);
+    
+    if(anim)
+    {
+        /* Increment rotation angles and update matrix */
+        if(axis == Xaxis) {
+	  angleX = fmod(angleX + delta*velocity/40.0, 360.0);  
+	} else if(axis == Yaxis) {
+	  angleY = fmod(angleY + delta*velocity/40.0, 360.0); 
+	} else if(axis == Zaxis) {			
+	  angleZ = fmod(angleZ + delta*velocity/40.0, 360.0);
+	}	    
+    }
+    SetRotationX(angleX, RotationMatrixAnimX);
+    SetRotationY(angleY, RotationMatrixAnimY);
+    SetRotationZ(angleZ, RotationMatrixAnimZ);
+    MultiplyMatrix(RotationMatrixAnimX, RotationMatrixAnimY, RotationMatrixAnimCamera);
+    MultiplyMatrix(RotationMatrixAnimCamera, RotationMatrixAnimZ, RotationMatrixAnimCamera);
+
+    /* Set viewing transform */
+    SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
+    MultiplyMatrix(ViewMatrix, RotationMatrixAnimCamera, ViewMatrix);
+    
+    
     /* Time dependent rotation */
     SetRotationY(angle, RotationMatrixAnim);
 
+    /* Set Transformation for floor */
+    SetScaling(3, 0.1, 3, scaling);
+    SetTranslation(0, -0.5, 0, translation);
+    MultiplyMatrix(translation, scaling, ModelMatrixFloor);
+    
     /* Set Transformation for Platform */
     SetScaling(0.25, 0.25, 0.25, scaling);
     MultiplyMatrix(RotationMatrixAnim, scaling, ModelMatrixPlatform);
-
+    
     /* Set Transformation for the 6 outer Poles  */
     SetScaling(0.005, 2, 0.005, scaling);
     int i;
@@ -345,6 +541,7 @@ void OnIdle()
     SetTranslation(0, 2, 0, translation);
     MultiplyMatrix(translation, scaling, ModelMatrixMiddlePole);
     MultiplyMatrix(RotationMatrixAnim, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
+    //MultiplyMatrix(RotationMatrixAnimCamera, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
 
     /* Set Transformation for roof */
     SetScaling(0.25, 0.25, 0.25, scaling);
@@ -356,14 +553,21 @@ void OnIdle()
     SetScaling(0.25, 0.25, 0.25, scaling);
     SetRotationX(-45, rotationX);
     SetRotationZ(35, rotationZ);
-
-    SetRotationY(angle+30, RotationMatrixAnim);
+   
+    //if(anim){
+        SetRotationY(angle+30, RotationMatrixAnim);
+	//}
     transY = 0.4;
     for(i = 0; i < 6; i++) {
+        	/* translate the points to the inner platform */
         transX = vertex_buffer_platform[(i+1)*3]/6;
         transZ = vertex_buffer_platform[(i+1)*3 +2]/6;
         SetTranslation(transX, transY, transZ, translation);
-        SetRotationY(-2*angle * (i%3 +1), rotationY);
+        
+        /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed 
+         * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed) 
+         */
+        SetRotationY(-2*angle * (i%3 +1), rotationY); 
         MultiplyMatrix(rotationX, scaling, ModelMatrixCubes[i]);
         MultiplyMatrix(rotationZ, ModelMatrixCubes[i], ModelMatrixCubes[i]);
         MultiplyMatrix(rotationY, ModelMatrixCubes[i], ModelMatrixCubes[i]);
@@ -371,6 +575,7 @@ void OnIdle()
         MultiplyMatrix(RotationMatrixAnim, ModelMatrixCubes[i], ModelMatrixCubes[i]);
     }
 
+    
     /* Request redrawing of window content */
     glutPostRedisplay();
 }
@@ -386,7 +591,8 @@ void OnIdle()
 
 void SetupDataBuffers()
 {
-    /* cube */
+    /* cubefloat camera_disp = -10.0;
+    float camera_up = -2; */
     glGenBuffers(1, &VBO_cube);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_cube), vertex_buffer_cube, GL_STATIC_DRAW);
@@ -424,12 +630,18 @@ void SetupDataBuffers()
     glGenBuffers(1, &CBO_roof);
     glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
     glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_roof), color_buffer_roof, GL_STATIC_DRAW);
+    
+    /* floor */
+    glGenBuffers(1, &CBO_floor);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_floor);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_floor), color_buffer_floor, GL_STATIC_DRAW);
 }
 
 void SetupVertexArrayObjects() {
     glGenVertexArrays(1, &VAO_platform);
     glGenVertexArrays(1, &VAO_cube);
     glGenVertexArrays(1, &VAO_roof);
+    glGenVertexArrays(1, &VAO_floor);
     GLint size; // don't really need this anymore, maybe change it to passing 0 in the glGetBufferParameteriv
 
     /* platform */
@@ -472,6 +684,20 @@ void SetupVertexArrayObjects() {
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
+    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+    
+    /* floor */
+    glBindVertexArray(VAO_floor);
+
+    glEnableVertexAttribArray(vPosition);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
+    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glEnableVertexAttribArray(vColor);
+    glBindBuffer(GL_ARRAY_BUFFER, CBO_floor);
+    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
 }
@@ -609,6 +835,11 @@ void Initialize(void)
     SetIdentityMatrix(ViewMatrix);
     SetIdentityMatrix(ModelMatrixPlatform);
     SetIdentityMatrix(ModelMatrixRoof);
+    SetIdentityMatrix(ModelMatrixFloor);
+    SetIdentityMatrix(RotationMatrixAnimCamera);
+    SetIdentityMatrix(RotationMatrixAnimX);
+    SetIdentityMatrix(RotationMatrixAnimY);
+    SetIdentityMatrix(RotationMatrixAnimZ);
     int i;
     for(i = 0; i < 6; i++) {
         SetIdentityMatrix(ModelMatrixPole[i]);
@@ -620,12 +851,14 @@ void Initialize(void)
     float nearPlane = 1.0; 
     float farPlane = 50.0;
     SetPerspectiveMatrix(fovy, aspect, nearPlane, farPlane, ProjectionMatrix);
-
+  
     /* Set viewing transform */
-    float camera_disp = -10.0;
-    float camera_up = -2;
+    camera_disp = -10.0;
+    camera_up = -2;
     SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
-}
+    
+    anim = GL_FALSE;
+   }
 
 
 /******************************************************************
@@ -661,6 +894,9 @@ int main(int argc, char** argv)
      * handing control over to GLUT */
     glutIdleFunc(OnIdle);
     glutDisplayFunc(Display);
+    glutKeyboardFunc(Keyboard); 
+    glutMouseFunc(Mouse);  
+
     glutMainLoop();
 
     /* ISO C requires main to return int */
