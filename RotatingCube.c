@@ -60,7 +60,7 @@ GLuint ShaderProgram;
 
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */ 
-float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16];
+float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16], ModelMatrixOther[6][16];
 float ModelMatrixFloor[16];
 
 float RotationMatrixAnimX[16];
@@ -328,10 +328,8 @@ void Display()
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
-
-    printf("model: %d\n", model);
     /* Draw 6 cubes */
-    if(model = Cubes) {
+    if(model == Cubes) {
         glBindVertexArray(VAO_cube);
         for(i = 0; i < 6; i++) {
             glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
@@ -339,10 +337,10 @@ void Display()
         }
     }
     /* Draw 6 objects which where loaded from the .obj file */
-    else if(model = Other) {
+    else if(model == Other) {
         glBindVertexArray(VAO_model);
         for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
+            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
             glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -443,7 +441,6 @@ void OnIdle()
     MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixRoof, ModelMatrixRoof);
 
     /* Set Transformation for cubes that additionally rotate around themselves */
-    SetScaling(0.25, 0.25, 0.25, scaling);
     SetRotationX(-45, rotationX);
     SetRotationZ(35, rotationZ);
    
@@ -459,12 +456,20 @@ void OnIdle()
         /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed 
          * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed) 
          */
-        SetRotationY(-2*angle * (i%3 +1), rotationY); 
+        SetScaling(0.25, 0.25, 0.25, scaling);
+        SetRotationY(-2*angle * (i%3 +1), rotationY);
         MultiplyMatrix(rotationX, scaling, ModelMatrixCubes[i]);
         MultiplyMatrix(rotationZ, ModelMatrixCubes[i], ModelMatrixCubes[i]);
         MultiplyMatrix(rotationY, ModelMatrixCubes[i], ModelMatrixCubes[i]);
         MultiplyMatrix(translation, ModelMatrixCubes[i], ModelMatrixCubes[i]);
         MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+
+        /* Set ModelMatrices for alternative Objects */
+        SetScaling(0.2, 0.2, 0.2, scaling);
+        MultiplyMatrix(rotationY, scaling, ModelMatrixOther[i]);
+        MultiplyMatrix(translation, ModelMatrixOther[i], ModelMatrixOther[i]);
+        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixOther[i], ModelMatrixOther[i]);
+
     }
 
     
