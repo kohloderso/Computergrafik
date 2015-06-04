@@ -26,6 +26,7 @@
 
 /* GLM includes - adjust path as required for local installation */
 #include "glm/glm.hpp"
+#include "glm/ext.hpp"
 #include "glm/vec3.hpp" // glm::vec3
 #include "glm/gtc/matrix_transform.hpp" /* Provides glm::translate, glm::rotate, 
                                          * glm::scale, glm::perspective */
@@ -60,7 +61,7 @@ GLuint CBO_cube, CBO_platform, CBO_roof, CBO_floor;
 GLuint IBO_cube, IBO_platform, IBO_roof, IBO_model;
 
 /* Define handle to normal buffer objects */
-GLuint NBO_roof, NBO_cube;
+GLuint NBO_roof, NBO_cube, NBO_platform;
 
 GLuint VAO_cube, VAO_platform, VAO_roof, VAO_floor, VAO_model;
 
@@ -73,16 +74,15 @@ static const char* FragmentShaderString;
 
 GLuint ShaderProgram;
 
-float ProjectionMatrix[16]; /* Perspective projection matrix */
-float ViewMatrix[16]; /* Camera view matrix */
-float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16], ModelMatrixOther[6][16];
-float ModelMatrixFloor[16];
+glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
+glm::mat4 ViewMatrix; /* Camera view matrix */
+glm::mat4 ModelMatrixPole[6], ModelMatrixPlatform, ModelMatrixRoof, ModelMatrixFloor, ModelMatrixMiddlePole, ModelMatrixCubes[6], ModelMatrixExtern[6];
 
-float RotationMatrixAnimX[16];
-float RotationMatrixAnimY[16];
-float RotationMatrixAnimZ[16];
-float RotationMatrixAnimCamera[16];
-float RotationMatrixAnimRound[16];
+//float RotationMatrixAnimX[16];
+//float RotationMatrixAnimY[16];
+//float RotationMatrixAnimZ[16];
+glm::mat4 RotationMatrixAnimCamera;
+glm::mat4 RotationMatrixAnimRound;
 
 /* Variables for storing current rotation angles */
 float angleX, angleY, angleZ, angle = 0.0f;
@@ -108,7 +108,9 @@ enum {Cubes=0, Other=1};
 int model = Cubes;
 
 /* Define normal buffers */
-glm::vec3* normal_buffer_cube;
+glm::vec3 *normal_buffer_cube;
+glm::vec3 *normal_buffer_platform;
+glm::vec3 *normal_buffer_roof;
 
 glm::vec3 vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
         glm::vec3(-1.0, -1.0,  1.0),
@@ -158,21 +160,21 @@ GLushort index_buffer_cube[] = { /* Indices of 6*2 triangles (6 sides) */
         6, 7, 3,
 };
 
-GLfloat vertex_buffer_platform[] = {
-        0, 0, 0,
-        4, 0, 7,
-        8, 0, 0,
-        4, 0 , -7,
-        -4, 0, -7,
-        -8, 0, 0,
-        -4, 0, 7,
-        0, -1, 0,
-        4, -1, 7,
-        8, -1, 0,
-        4, -1 , -7,
-        -4, -1, -7,
-        -8, -1, 0,
-        -4, -1, 7,
+glm::vec3 vertex_buffer_platform[] = {
+        glm::vec3(0, 0, 0),
+        glm::vec3(4, 0, 7),
+        glm::vec3(8, 0, 0),
+        glm::vec3(4, 0 , -7),
+        glm::vec3(-4, 0, -7),
+        glm::vec3(-8, 0, 0),
+        glm::vec3(-4, 0, 7),
+        glm::vec3(0, -1, 0),
+        glm::vec3(4, -1, 7),
+        glm::vec3(8, -1, 0),
+        glm::vec3(4, -1 , -7),
+        glm::vec3(-4, -1, -7),
+        glm::vec3(-8, -1, 0),
+        glm::vec3(-4, -1, 7)
 };
 
 GLfloat color_buffer_platform[] = {
@@ -219,21 +221,21 @@ GLushort index_buffer_platform[] = {
         1,13,8
 };
 
-GLfloat vertex_buffer_roof[] = {
-        0, 5, 0,
-        4, 0, 7,
-        8, 0, 0,
-        4, 0 , -7,
-        -4, 0, -7,
-        -8, 0, 0,
-        -4, 0, 7,
-        0, -1, 0,
-        4, -1, 7,
-        8, -1, 0,
-        4, -1 , -7,
-        -4, -1, -7,
-        -8, -1, 0,
-        -4, -1, 7,
+glm::vec3 vertex_buffer_roof[] = {
+        glm::vec3(0, 5, 0),
+        glm::vec3(4, 0, 7),
+        glm::vec3(8, 0, 0),
+        glm::vec3(4, 0 , -7),
+        glm::vec3(-4, 0, -7),
+        glm::vec3(-8, 0, 0),
+        glm::vec3(-4, 0, 7),
+        glm::vec3(0, -1, 0),
+        glm::vec3(4, -1, 7),
+        glm::vec3(8, -1, 0),
+        glm::vec3(4, -1 , -7),
+        glm::vec3(-4, -1, -7),
+        glm::vec3(-8, -1, 0),
+        glm::vec3(-4, -1, 7)
 };
 
 GLfloat color_buffer_roof[] = {
@@ -307,7 +309,9 @@ void Display()
         fprintf(stderr, "Could not bind uniform ProjectionMatrix\n");
         exit(-1);
     }
-    glUniformMatrix4fv(projectionUniform, 1, GL_TRUE, ProjectionMatrix);
+    //printf("%s\n", glm::to_string(ProjectionMatrix).c_str());
+    glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(ProjectionMatrix));
+
 
     GLint ViewUniform = glGetUniformLocation(ShaderProgram, "ViewMatrix");
     if (ViewUniform == -1)
@@ -315,7 +319,8 @@ void Display()
         fprintf(stderr, "Could not bind uniform ViewMatrix\n");
         exit(-1);
     }
-    glUniformMatrix4fv(ViewUniform, 1, GL_TRUE, ViewMatrix);
+    //printf("%s\n", glm::to_string(ViewMatrix).c_str());
+    glUniformMatrix4fv(ViewUniform, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
 
     GLint RotationUniform = glGetUniformLocation(ShaderProgram, "ModelMatrix");
     if (RotationUniform == -1)
@@ -326,31 +331,32 @@ void Display()
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
+    //printf("Plattform: %s\n", glm::to_string(ModelMatrixPlatform).c_str());
+    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixPlatform));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
 
     /* Draw poles */
     int i;
     for(i = 0; i < 6; i++) {
-        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
+        glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixPole[i]));
         glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     }
 
     /* Draw middle pole */
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
+    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixMiddlePole));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw roof */
     glBindVertexArray(VAO_roof);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
+    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixRoof));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw 6 cubes */
     if(model == Cubes) {
         glBindVertexArray(VAO_cube);
         for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
+            glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixCubes[i]));
             glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -358,14 +364,14 @@ void Display()
     else if(model == Other) {
         glBindVertexArray(VAO_model);
         for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
+            glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixExtern[i]));
             glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
         }
     }
 
     /* Draw floor */
     glBindVertexArray(VAO_floor);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixFloor);
+    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixFloor));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(0);
@@ -386,10 +392,6 @@ void Display()
 
 void OnIdle()
 {
-    float rotationX[16], rotationY[16], rotationZ[16];
-    float scaling[16];
-    float translation[16];
-
     /* Determine delta time between two frames to ensure constant animation */
     int newTime = glutGet(GLUT_ELAPSED_TIME);
     int delta = newTime - oldTime;
@@ -409,84 +411,78 @@ void OnIdle()
         }
     }
     /* set the rotations for the camera in RotationMatrixAnimCamera */
-    SetRotationX(angleX, RotationMatrixAnimX);
-    SetRotationY(angleY, RotationMatrixAnimY);
-    SetRotationZ(angleZ, RotationMatrixAnimZ);
-    MultiplyMatrix(RotationMatrixAnimX, RotationMatrixAnimY, RotationMatrixAnimCamera);
-    MultiplyMatrix(RotationMatrixAnimCamera, RotationMatrixAnimZ, RotationMatrixAnimCamera);
+    RotationMatrixAnimCamera = glm::rotate(glm::mat4(1.0f), angleX, glm::vec3(1.0f, 0.0f, 0.0f));
+    RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleY, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleZ, glm::vec3(0.0f, 0.0f, 1.0f));
 
     /* Set viewing transform */
-    SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
-    MultiplyMatrix(ViewMatrix, RotationMatrixAnimCamera, ViewMatrix);
-
+    ViewMatrix = glm::translate(RotationMatrixAnimCamera, glm::vec3(0.0, camera_up, camera_disp));
 
     /* Time dependent rotation for the merry-go-around*/
-    SetRotationY(angle, RotationMatrixAnimRound);
+    RotationMatrixAnimRound = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    printf("RotationMatrixAnimRound: %s\n", glm::to_string(RotationMatrixAnimRound).c_str());
 
     /* Set Transformation for floor */
-    SetScaling(3, 0.1, 3, scaling);
-    SetTranslation(0, -0.5, 0, translation);
-    MultiplyMatrix(translation, scaling, ModelMatrixFloor);
+    ModelMatrixFloor = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 0.1f, 3.0f));
+    ModelMatrixFloor = glm::translate(ModelMatrixFloor, glm::vec3(0.0f, -0.5f, 0.0f));
 
     /* Set Transformation for Platform */
-    SetScaling(0.25, 0.25, 0.25, scaling);
-    MultiplyMatrix(RotationMatrixAnimRound, scaling, ModelMatrixPlatform);
+    ModelMatrixPlatform = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
+    ModelMatrixPlatform = RotationMatrixAnimRound * ModelMatrixPlatform;
+    printf("Plattform On Idle %s\n", glm::to_string(ModelMatrixPlatform).c_str());
 
     /* Set Transformation for the 6 outer Poles  */
-    SetScaling(0.005, 2, 0.005, scaling);
+    glm::mat4 scalingMat = glm::scale(glm::mat4(1.0f), glm::vec3(0.005f, 2.0f, 0.005f));
     int i;
     float transX, transZ;
     float transY = 2;
     for(i = 0; i < 6; i++) {
-        transX = vertex_buffer_platform[(i+1)*3]/4;
-        transZ = vertex_buffer_platform[(i+1)*3+2]/4;
-        SetTranslation(transX, transY, transZ, translation);
-        MultiplyMatrix(translation, scaling, ModelMatrixPole[i]);
-        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixPole[i], ModelMatrixPole[i]);
+        transX = vertex_buffer_platform[(i+1)].x/4;
+        transZ = vertex_buffer_platform[(i+1)].z/4;
+        ModelMatrixPole[i] = glm::translate(scalingMat, glm::vec3(transX, transY, transZ));
+        ModelMatrixPole[i] = RotationMatrixAnimRound * ModelMatrixPole[i];
     }
 
     /* Set Transformation for middle pole */
-    SetScaling(0.01, 2, 0.01, scaling);
-    SetTranslation(0, 2, 0, translation);
-    MultiplyMatrix(translation, scaling, ModelMatrixMiddlePole);
-    MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
-    //MultiplyMatrix(RotationMatrixAnimCamera, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
+    ModelMatrixMiddlePole = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 2.0f, 0.01f));
+    ModelMatrixMiddlePole = glm::translate(ModelMatrixMiddlePole, glm::vec3(0.0f, 2.0f, 0.0f));
+    ModelMatrixMiddlePole = RotationMatrixAnimRound * ModelMatrixMiddlePole;
 
     /* Set Transformation for roof */
-    SetScaling(0.25, 0.25, 0.25, scaling);
-    SetTranslation(0,2,0, translation);
-    MultiplyMatrix(translation, scaling, ModelMatrixRoof);
-    MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixRoof, ModelMatrixRoof);
+    ModelMatrixRoof = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
+    ModelMatrixRoof = glm::translate(ModelMatrixRoof, glm::vec3(0.0f, 2.0f, 0.0f));
+    ModelMatrixRoof = RotationMatrixAnimRound * ModelMatrixRoof;
 
     /* Set Transformation for cubes that additionally rotate around themselves */
-    SetRotationX(-45, rotationX);
-    SetRotationZ(35, rotationZ);
+    glm::mat4 scalingMatCubes = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
+    glm::mat4 scalingMatExtern = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
+    glm::mat4 rotationX = glm::rotate(glm::mat4(1.0f), -45.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 rotationZ = glm::rotate(glm::mat4(1.0f), 35.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 
-    SetRotationY(angle+30, RotationMatrixAnimRound);
+    RotationMatrixAnimRound = glm::rotate(glm::mat4(1.0f), angle+30, glm::vec3(0.0f, 1.0f, 0.0f));
 
     transY = 0.4;
     for(i = 0; i < 6; i++) {
-        /* translate the points to the inner platform */
-        transX = vertex_buffer_platform[(i+1)*3]/6;
-        transZ = vertex_buffer_platform[(i+1)*3 +2]/6;
-        SetTranslation(transX, transY, transZ, translation);
+        ModelMatrixCubes[i] = rotationZ * rotationX * scalingMatCubes;
 
         /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed 
          * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed) 
          */
-        SetScaling(0.25, 0.25, 0.25, scaling);
-        SetRotationY(-2*angle * (i%3 +1), rotationY);
-        MultiplyMatrix(rotationX, scaling, ModelMatrixCubes[i]);
-        MultiplyMatrix(rotationZ, ModelMatrixCubes[i], ModelMatrixCubes[i]);
-        MultiplyMatrix(rotationY, ModelMatrixCubes[i], ModelMatrixCubes[i]);
-        MultiplyMatrix(translation, ModelMatrixCubes[i], ModelMatrixCubes[i]);
-        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        float angletmp = -2*angle * (i%3 +1);
+        ModelMatrixCubes[i] = glm::rotate(ModelMatrixCubes[i], angletmp, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        /* translate the points to the inner platform */
+        transX = vertex_buffer_platform[(i+1)].x/6;
+        transZ = vertex_buffer_platform[(i+1)].z/6;
+        ModelMatrixCubes[i] = glm::translate(ModelMatrixCubes[i], glm::vec3(transX, transY, transZ));
+
+        ModelMatrixCubes[i] = RotationMatrixAnimRound * ModelMatrixCubes[i];
 
         /* Set ModelMatrices for alternative Objects */
-        SetScaling(0.2, 0.2, 0.2, scaling);
-        MultiplyMatrix(rotationY, scaling, ModelMatrixOther[i]);
-        MultiplyMatrix(translation, ModelMatrixOther[i], ModelMatrixOther[i]);
-        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixOther[i], ModelMatrixOther[i]);
+        ModelMatrixExtern[i] = glm::rotate(scalingMatExtern, angletmp, glm::vec3(0.0f, 1.0f, 0.0f));
+        ModelMatrixExtern[i] = glm::translate(ModelMatrixExtern[i], glm::vec3(transX, transY, transZ));
+
+        ModelMatrixExtern[i] = RotationMatrixAnimRound * ModelMatrixExtern[i];
 
     }
 
@@ -564,9 +560,6 @@ void Keyboard(unsigned char key, int x, int y)
 
             /* Reset initial rotation of object */
         case 'r':
-            SetIdentityMatrix(RotationMatrixAnimX);
-            SetIdentityMatrix(RotationMatrixAnimY);
-            SetIdentityMatrix(RotationMatrixAnimZ);
             angleX = 0.0;
             angleY = 0.0;
             angleZ = 0.0;
@@ -662,6 +655,10 @@ void SetupDataBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
     glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_platform), color_buffer_platform, GL_STATIC_DRAW);
 
+    glGenBuffers(1, &NBO_platform);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO_platform);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_platform), normal_buffer_platform, GL_STATIC_DRAW);
+
     /* roof */
     glGenBuffers(1, &VBO_roof);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_roof);
@@ -674,6 +671,10 @@ void SetupDataBuffers()
     glGenBuffers(1, &CBO_roof);
     glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
     glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_roof), color_buffer_roof, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &NBO_roof);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO_roof);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_roof), normal_buffer_roof, GL_STATIC_DRAW);
 
     /* floor */
     glGenBuffers(1, &CBO_floor);
@@ -709,6 +710,10 @@ void SetupVertexArrayObjects() {
     glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
 
+    glEnableVertexAttribArray(vNormal);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO_platform);
+    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
@@ -741,6 +746,10 @@ void SetupVertexArrayObjects() {
     glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
 
+    glEnableVertexAttribArray(vNormal);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO_roof);
+    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
@@ -754,6 +763,10 @@ void SetupVertexArrayObjects() {
     glEnableVertexAttribArray(vColor);
     glBindBuffer(GL_ARRAY_BUFFER, CBO_floor);
     glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
+
+    glEnableVertexAttribArray(vNormal);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO_cube);
+    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -956,46 +969,30 @@ void Initialize(void)
 
     /* Compute normals */
     computeNormals(vertex_buffer_cube, sizeof(vertex_buffer_cube)/sizeof(glm::vec3), index_buffer_cube, sizeof(index_buffer_cube)/sizeof(GLushort), normal_buffer_cube);
+    computeNormals(vertex_buffer_roof, sizeof(vertex_buffer_roof)/sizeof(glm::vec3), index_buffer_roof, sizeof(index_buffer_roof)/sizeof(GLushort), normal_buffer_roof);
+    computeNormals(vertex_buffer_platform, sizeof(vertex_buffer_platform)/sizeof(glm::vec3), index_buffer_platform, sizeof(index_buffer_platform)/sizeof(GLushort), normal_buffer_platform);
 
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers();
-
     SetupVertexArrayObjects();
 
     /* Setup shaders and shader program */
     CreateShaderProgram();
 
-    /* Initialize matrices */
-    SetIdentityMatrix(ProjectionMatrix);
-    SetIdentityMatrix(ViewMatrix);
-    SetIdentityMatrix(ModelMatrixPlatform);
-    SetIdentityMatrix(ModelMatrixRoof);
-    SetIdentityMatrix(ModelMatrixFloor);
-    SetIdentityMatrix(RotationMatrixAnimCamera);
-    SetIdentityMatrix(RotationMatrixAnimX);
-    SetIdentityMatrix(RotationMatrixAnimY);
-    SetIdentityMatrix(RotationMatrixAnimZ);
-
-    for(i = 0; i < 6; i++) {
-        SetIdentityMatrix(ModelMatrixPole[i]);
-    }
 
     /* Set projection transform */
-    float fovy = 45.0;
+    float fovy = 45.0*M_PI/180.0;
     float aspect = 1.0;
     float nearPlane = 1.0;
     float farPlane = 50.0;
-    SetPerspectiveMatrix(fovy, aspect, nearPlane, farPlane, ProjectionMatrix);
+    ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane);
 
     /* Set viewing transform */
     camera_disp = -10.0;
     camera_up = -2;
-    SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
+    ViewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, camera_up, camera_disp));
 
     anim = GL_FALSE;
-
-
-
 }
 
 
