@@ -6,7 +6,7 @@ TARGET = Merry-go-around
 
 
 CFLAGS = -g -Wall
-LDLIBS= -lm -lglut -lGLEW -lGL
+LDLIBS= -lstdc++ -lm -lglut -lGLEW -lGL
 INCLUDES = -Isource
 
 SRC_DIR = src
@@ -16,7 +16,7 @@ VPATH = src
 # Rules
 all: $(TARGET)
 
-$(TARGET).o: $(TARGET).c
+$(TARGET).o: $(TARGET).cpp
 	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 
 $(BUILD_DIR)/%.o: %.c
