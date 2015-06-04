@@ -3,7 +3,7 @@
 uniform mat4 ProjectionMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ModelMatrix;
-uniform mat4 InverseTransposeMV;
+//uniform mat4 InverseTransposeMV;
 uniform vec3 LightPosition_worldspace;
 
 layout (location = 0) in vec3 Position;
@@ -34,7 +34,7 @@ void main()
 	LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
 	
 	// Normal of the the vertex, in camera space
-	Normal_cameraspace = ( InverseTransposeMV * vec4(vertexNormal,0)).xyz; // Use  inverse transpose because of non-uniform-scaling 
+	Normal_cameraspace = ( ViewMatrix * ModelMatrix * vec4(vertexNormal,0)).xyz; // Use  inverse transpose because of non-uniform-scaling 
 	
    vColor = Color;
 }

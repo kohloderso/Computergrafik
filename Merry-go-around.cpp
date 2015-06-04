@@ -74,15 +74,16 @@ static const char* FragmentShaderString;
 
 GLuint ShaderProgram;
 
-glm::mat4 ProjectionMatrix; /* Perspective projection matrix */
-glm::mat4 ViewMatrix; /* Camera view matrix */
-glm::mat4 ModelMatrixPole[6], ModelMatrixPlatform, ModelMatrixRoof, ModelMatrixFloor, ModelMatrixMiddlePole, ModelMatrixCubes[6], ModelMatrixExtern[6];
+float ProjectionMatrix[16]; /* Perspective projection matrix */
+float ViewMatrix[16]; /* Camera view matrix */
+float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16], ModelMatrixOther[6][16];
+float ModelMatrixFloor[16];
 
-//float RotationMatrixAnimX[16];
-//float RotationMatrixAnimY[16];
-//float RotationMatrixAnimZ[16];
-glm::mat4 RotationMatrixAnimCamera;
-glm::mat4 RotationMatrixAnimRound;
+float RotationMatrixAnimX[16];
+float RotationMatrixAnimY[16];
+float RotationMatrixAnimZ[16];
+float RotationMatrixAnimCamera[16];
+float RotationMatrixAnimRound[16];
 
 /* Variables for storing current rotation angles */
 float angleX, angleY, angleZ, angle = 0.0f;
@@ -309,9 +310,11 @@ void Display()
         fprintf(stderr, "Could not bind uniform ProjectionMatrix\n");
         exit(-1);
     }
-    //printf("%s\n", glm::to_string(ProjectionMatrix).c_str());
-    glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(ProjectionMatrix));
-
+    for(int i = 0; i < 16; i++) {
+        printf("%f ", ProjectionMatrix[i]);
+    }
+    printf("\n");
+    glUniformMatrix4fv(projectionUniform, 1, GL_TRUE, ProjectionMatrix);
 
     GLint ViewUniform = glGetUniformLocation(ShaderProgram, "ViewMatrix");
     if (ViewUniform == -1)
@@ -319,8 +322,11 @@ void Display()
         fprintf(stderr, "Could not bind uniform ViewMatrix\n");
         exit(-1);
     }
-    //printf("%s\n", glm::to_string(ViewMatrix).c_str());
-    glUniformMatrix4fv(ViewUniform, 1, GL_FALSE, glm::value_ptr(ViewMatrix));
+    for(int i = 0; i < 16; i++) {
+        printf("%f ", ViewMatrix[i]);
+    }
+    printf("\n");
+    glUniformMatrix4fv(ViewUniform, 1, GL_TRUE, ViewMatrix);
 
     GLint RotationUniform = glGetUniformLocation(ShaderProgram, "ModelMatrix");
     if (RotationUniform == -1)
@@ -329,55 +335,41 @@ void Display()
         exit(-1);
     }
 
-    GLint InverseTransposeMV = glGetUniformLocation(ShaderProgram, "InverseTransposeMV");
-    if (InverseTransposeMV == -1)
-    {
-        fprintf(stderr, "Could not bind uniform InverseTransposeMV\n");
-        exit(-1);
-    }
-
     GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
     if (LightUniform == -1)
     {
-        fprintf(stderr, "Could not bind uniform LightPosition_worldspace\n");
+        fprintf(stderr, "Could not bind uniform Lightposition\n");
         exit(-1);
     }
-    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
-
+    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 10.0f, 0.0f)));
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
-    //printf("Plattform: %s\n", glm::to_string(ModelMatrixPlatform).c_str());
-    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixPlatform));
-    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixPlatform))));
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
 
     /* Draw poles */
     int i;
     for(i = 0; i < 6; i++) {
-        glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixPole[i]));
-        glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixPole[i]))));
+        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
         glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     }
 
     /* Draw middle pole */
-    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixMiddlePole));
-    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixMiddlePole))));
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw roof */
     glBindVertexArray(VAO_roof);
-    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixRoof));
-    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixRoof))));
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw 6 cubes */
     if(model == Cubes) {
         glBindVertexArray(VAO_cube);
         for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixCubes[i]));
-            glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixCubes[i]))));
+            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
             glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -385,16 +377,14 @@ void Display()
     else if(model == Other) {
         glBindVertexArray(VAO_model);
         for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixExtern[i]));
-            glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixExtern[i]))));
+            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
             glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
         }
     }
 
     /* Draw floor */
     glBindVertexArray(VAO_floor);
-    glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixFloor));
-    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixFloor))));
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixFloor);
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(0);
@@ -409,17 +399,21 @@ void Display()
 *
 * OnIdle
 *
-* 
+*
 *
 *******************************************************************/
 
 void OnIdle()
 {
+    float rotationX[16], rotationY[16], rotationZ[16];
+    float scaling[16];
+    float translation[16];
+
     /* Determine delta time between two frames to ensure constant animation */
     int newTime = glutGet(GLUT_ELAPSED_TIME);
     int delta = newTime - oldTime;
     oldTime = newTime;
-    float angle = fmod((glutGet(GLUT_ELAPSED_TIME) / 2000.0), 360.0);
+    float angle = (glutGet(GLUT_ELAPSED_TIME) / 2000.0) * (180.0/M_PI);
 
     /* Determine the angles for the rotation of the camera around the model */
     if(anim)
@@ -434,75 +428,89 @@ void OnIdle()
         }
     }
     /* set the rotations for the camera in RotationMatrixAnimCamera */
-    RotationMatrixAnimCamera = glm::rotate(glm::mat4(1.0f), angleY, glm::vec3(0.0f, 1.0f, 0.0f));
-    RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleX, glm::vec3(1.0f, 0.0f, 0.0f));
-    RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleZ, glm::vec3(0.0f, 0.0f, 1.0f));
+    SetRotationX(angleX, RotationMatrixAnimX);
+    SetRotationY(angleY, RotationMatrixAnimY);
+    SetRotationZ(angleZ, RotationMatrixAnimZ);
+    MultiplyMatrix(RotationMatrixAnimX, RotationMatrixAnimY, RotationMatrixAnimCamera);
+    MultiplyMatrix(RotationMatrixAnimCamera, RotationMatrixAnimZ, RotationMatrixAnimCamera);
 
     /* Set viewing transform */
-    ViewMatrix = glm::translate(RotationMatrixAnimCamera, glm::vec3(0.0, camera_up, camera_disp));
+    SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
+    MultiplyMatrix(ViewMatrix, RotationMatrixAnimCamera, ViewMatrix);
+
 
     /* Time dependent rotation for the merry-go-around*/
-    RotationMatrixAnimRound = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    //printf("RotationMatrixAnimRound: %s\n", glm::to_string(RotationMatrixAnimRound).c_str());
+    SetRotationY(angle, RotationMatrixAnimRound);
 
     /* Set Transformation for floor */
-    ModelMatrixFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
-    ModelMatrixFloor = glm::scale(ModelMatrixFloor, glm::vec3(3.0f, 0.1f, 3.0f));
+    SetScaling(3, 0.1, 3, scaling);
+    SetTranslation(0, -0.5, 0, translation);
+    MultiplyMatrix(translation, scaling, ModelMatrixFloor);
 
     /* Set Transformation for Platform */
-    ModelMatrixPlatform = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
-    ModelMatrixPlatform = RotationMatrixAnimRound * ModelMatrixPlatform;
+    SetScaling(0.25, 0.25, 0.25, scaling);
+    MultiplyMatrix(RotationMatrixAnimRound, scaling, ModelMatrixPlatform);
 
     /* Set Transformation for the 6 outer Poles  */
-    glm::mat4 scalingMat = glm::scale(glm::mat4(1.0f), glm::vec3(0.005f, 2.0f, 0.005f));
+    SetScaling(0.005, 2, 0.005, scaling);
     int i;
     float transX, transZ;
     float transY = 2;
     for(i = 0; i < 6; i++) {
         transX = vertex_buffer_platform[(i+1)].x/4;
         transZ = vertex_buffer_platform[(i+1)].z/4;
-        ModelMatrixPole[i] = glm::translate(glm::mat4(1.0f), glm::vec3(transX, transY, transZ));
-        ModelMatrixPole[i] = RotationMatrixAnimRound * ModelMatrixPole[i] * scalingMat;
+        SetTranslation(transX, transY, transZ, translation);
+        MultiplyMatrix(translation, scaling, ModelMatrixPole[i]);
+        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixPole[i], ModelMatrixPole[i]);
     }
 
     /* Set Transformation for middle pole */
-    ModelMatrixMiddlePole = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f));
-    ModelMatrixMiddlePole = glm::scale(ModelMatrixMiddlePole, glm::vec3(0.01f, 2.0f, 0.01f));
-    ModelMatrixMiddlePole = RotationMatrixAnimRound * ModelMatrixMiddlePole;
+    SetScaling(0.01, 2, 0.01, scaling);
+    SetTranslation(0, 2, 0, translation);
+    MultiplyMatrix(translation, scaling, ModelMatrixMiddlePole);
+    MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
+    //MultiplyMatrix(RotationMatrixAnimCamera, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
 
     /* Set Transformation for roof */
+    SetScaling(0.25, 0.25, 0.25, scaling);
+    SetTranslation(0,2,0, translation);
+    MultiplyMatrix(translation, scaling, ModelMatrixRoof);
 
-    ModelMatrixRoof = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f));
-    ModelMatrixRoof = glm::scale(ModelMatrixRoof, glm::vec3(0.25f, 0.25f, 0.25f));
-    ModelMatrixRoof = RotationMatrixAnimRound * ModelMatrixRoof;
-    //printf("Modelmatrixroof: %s\n", glm::to_string(ModelMatrixRoof).c_str());
-
+    MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixRoof, ModelMatrixRoof);
+    printf("ModelmatrixRoof ");
+    for(int i = 0; i < 16; i++) {
+        printf("%f ", ModelMatrixRoof[i]);
+    }
+    printf("\n");
     /* Set Transformation for cubes that additionally rotate around themselves */
-    glm::mat4 scalingMatCubes = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
-    glm::mat4 scalingMatExtern = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
-    glm::mat4 rotationX = glm::rotate(glm::mat4(1.0f), -45.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    glm::mat4 rotationZ = glm::rotate(glm::mat4(1.0f), 35.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    SetRotationX(-45, rotationX);
+    SetRotationZ(35, rotationZ);
 
-    RotationMatrixAnimRound = glm::rotate(glm::mat4(1.0f), angle+30, glm::vec3(0.0f, 1.0f, 0.0f));
+    SetRotationY(angle+30, RotationMatrixAnimRound);
 
     transY = 0.4;
     for(i = 0; i < 6; i++) {
         /* translate the points to the inner platform */
         transX = vertex_buffer_platform[(i+1)].x/6;
         transZ = vertex_buffer_platform[(i+1)].z/6;
-        glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(transX, transY, transZ));
+        SetTranslation(transX, transY, transZ, translation);
 
         /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed
          * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed)
          */
-        float angletmp = -2*angle * (i%3 +1);
-        glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angletmp, glm::vec3(0.0f, 1.0f, 0.0f));
-
-
-        ModelMatrixCubes[i] = RotationMatrixAnimRound * translation * rotation * rotationZ * rotationX * scalingMatCubes;
+        SetScaling(0.25, 0.25, 0.25, scaling);
+        SetRotationY(-2*angle * (i%3 +1), rotationY);
+        MultiplyMatrix(rotationX, scaling, ModelMatrixCubes[i]);
+        MultiplyMatrix(rotationZ, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        MultiplyMatrix(rotationY, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        MultiplyMatrix(translation, ModelMatrixCubes[i], ModelMatrixCubes[i]);
+        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixCubes[i], ModelMatrixCubes[i]);
 
         /* Set ModelMatrices for alternative Objects */
-        ModelMatrixExtern[i] = RotationMatrixAnimRound * translation * rotation * scalingMatExtern;
+        SetScaling(0.2, 0.2, 0.2, scaling);
+        MultiplyMatrix(rotationY, scaling, ModelMatrixOther[i]);
+        MultiplyMatrix(translation, ModelMatrixOther[i], ModelMatrixOther[i]);
+        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixOther[i], ModelMatrixOther[i]);
 
     }
 
@@ -1001,16 +1009,18 @@ void Initialize(void)
 
 
     /* Set projection transform */
-    float fovy = 45.0*M_PI/180.0;
+    float fovy = 45.0;   //*M_PI/180.0;
     float aspect = 1.0;
     float nearPlane = 1.0;
     float farPlane = 50.0;
-    ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane);
+    //ProjectionMatrix = glm::perspective(fovy, aspect, nearPlane, farPlane);
+    SetPerspectiveMatrix(fovy, aspect, nearPlane, farPlane, ProjectionMatrix);
 
     /* Set viewing transform */
     camera_disp = -10.0;
     camera_up = -2;
-    ViewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, camera_up, camera_disp));
+    SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
+    //ViewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, camera_up, camera_disp));
 
     anim = GL_FALSE;
 }
