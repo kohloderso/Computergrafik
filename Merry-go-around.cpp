@@ -342,7 +342,7 @@ void Display()
         fprintf(stderr, "Could not bind uniform LightPosition_worldspace\n");
         exit(-1);
     }
-    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 6.0f, 0.0f)));
+    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
 
 
     /* Draw platform */
@@ -419,7 +419,7 @@ void OnIdle()
     int newTime = glutGet(GLUT_ELAPSED_TIME);
     int delta = newTime - oldTime;
     oldTime = newTime;
-    float angle = (glutGet(GLUT_ELAPSED_TIME) / 2000.0) * (180.0/M_PI);
+    float angle = fmod((glutGet(GLUT_ELAPSED_TIME) / 2000.0), 360.0);
 
     /* Determine the angles for the rotation of the camera around the model */
     if(anim)
@@ -434,8 +434,8 @@ void OnIdle()
         }
     }
     /* set the rotations for the camera in RotationMatrixAnimCamera */
-    RotationMatrixAnimCamera = glm::rotate(glm::mat4(1.0f), angleX, glm::vec3(1.0f, 0.0f, 0.0f));
-    RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleY, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimCamera = glm::rotate(glm::mat4(1.0f), angleY, glm::vec3(0.0f, 1.0f, 0.0f));
+    RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleX, glm::vec3(1.0f, 0.0f, 0.0f));
     RotationMatrixAnimCamera = glm::rotate(RotationMatrixAnimCamera, angleZ, glm::vec3(0.0f, 0.0f, 1.0f));
 
     /* Set viewing transform */
@@ -443,16 +443,15 @@ void OnIdle()
 
     /* Time dependent rotation for the merry-go-around*/
     RotationMatrixAnimRound = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    printf("RotationMatrixAnimRound: %s\n", glm::to_string(RotationMatrixAnimRound).c_str());
+    //printf("RotationMatrixAnimRound: %s\n", glm::to_string(RotationMatrixAnimRound).c_str());
 
     /* Set Transformation for floor */
-    ModelMatrixFloor = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 0.1f, 3.0f));
-    ModelMatrixFloor = glm::translate(ModelMatrixFloor, glm::vec3(0.0f, -0.5f, 0.0f));
+    ModelMatrixFloor = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
+    ModelMatrixFloor = glm::scale(ModelMatrixFloor, glm::vec3(3.0f, 0.1f, 3.0f));
 
     /* Set Transformation for Platform */
     ModelMatrixPlatform = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
     ModelMatrixPlatform = RotationMatrixAnimRound * ModelMatrixPlatform;
-    printf("Plattform On Idle %s\n", glm::to_string(ModelMatrixPlatform).c_str());
 
     /* Set Transformation for the 6 outer Poles  */
     glm::mat4 scalingMat = glm::scale(glm::mat4(1.0f), glm::vec3(0.005f, 2.0f, 0.005f));
@@ -462,19 +461,21 @@ void OnIdle()
     for(i = 0; i < 6; i++) {
         transX = vertex_buffer_platform[(i+1)].x/4;
         transZ = vertex_buffer_platform[(i+1)].z/4;
-        ModelMatrixPole[i] = glm::translate(scalingMat, glm::vec3(transX, transY, transZ));
-        ModelMatrixPole[i] = RotationMatrixAnimRound * ModelMatrixPole[i];
+        ModelMatrixPole[i] = glm::translate(glm::mat4(1.0f), glm::vec3(transX, transY, transZ));
+        ModelMatrixPole[i] = RotationMatrixAnimRound * ModelMatrixPole[i] * scalingMat;
     }
 
     /* Set Transformation for middle pole */
-    ModelMatrixMiddlePole = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 2.0f, 0.01f));
-    ModelMatrixMiddlePole = glm::translate(ModelMatrixMiddlePole, glm::vec3(0.0f, 2.0f, 0.0f));
+    ModelMatrixMiddlePole = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f));
+    ModelMatrixMiddlePole = glm::scale(ModelMatrixMiddlePole, glm::vec3(0.01f, 2.0f, 0.01f));
     ModelMatrixMiddlePole = RotationMatrixAnimRound * ModelMatrixMiddlePole;
 
     /* Set Transformation for roof */
-    ModelMatrixRoof = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
-    ModelMatrixRoof = glm::translate(ModelMatrixRoof, glm::vec3(0.0f, 2.0f, 0.0f));
+
+    ModelMatrixRoof = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f));
+    ModelMatrixRoof = glm::scale(ModelMatrixRoof, glm::vec3(0.25f, 0.25f, 0.25f));
     ModelMatrixRoof = RotationMatrixAnimRound * ModelMatrixRoof;
+    //printf("Modelmatrixroof: %s\n", glm::to_string(ModelMatrixRoof).c_str());
 
     /* Set Transformation for cubes that additionally rotate around themselves */
     glm::mat4 scalingMatCubes = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 0.25f));
@@ -486,26 +487,22 @@ void OnIdle()
 
     transY = 0.4;
     for(i = 0; i < 6; i++) {
-        ModelMatrixCubes[i] = rotationZ * rotationX * scalingMatCubes;
-
-        /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed 
-         * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed) 
-         */
-        float angletmp = -2*angle * (i%3 +1);
-        ModelMatrixCubes[i] = glm::rotate(ModelMatrixCubes[i], angletmp, glm::vec3(0.0f, 1.0f, 0.0f));
-
         /* translate the points to the inner platform */
         transX = vertex_buffer_platform[(i+1)].x/6;
         transZ = vertex_buffer_platform[(i+1)].z/6;
-        ModelMatrixCubes[i] = glm::translate(ModelMatrixCubes[i], glm::vec3(transX, transY, transZ));
+        glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(transX, transY, transZ));
 
-        ModelMatrixCubes[i] = RotationMatrixAnimRound * ModelMatrixCubes[i];
+        /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed
+         * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed)
+         */
+        float angletmp = -2*angle * (i%3 +1);
+        glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angletmp, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+        ModelMatrixCubes[i] = RotationMatrixAnimRound * translation * rotation * rotationZ * rotationX * scalingMatCubes;
 
         /* Set ModelMatrices for alternative Objects */
-        ModelMatrixExtern[i] = glm::rotate(scalingMatExtern, angletmp, glm::vec3(0.0f, 1.0f, 0.0f));
-        ModelMatrixExtern[i] = glm::translate(ModelMatrixExtern[i], glm::vec3(transX, transY, transZ));
-
-        ModelMatrixExtern[i] = RotationMatrixAnimRound * ModelMatrixExtern[i];
+        ModelMatrixExtern[i] = RotationMatrixAnimRound * translation * rotation * scalingMatExtern;
 
     }
 
