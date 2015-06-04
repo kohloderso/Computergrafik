@@ -329,10 +329,27 @@ void Display()
         exit(-1);
     }
 
+    GLint InverseTransposeMV = glGetUniformLocation(ShaderProgram, "InverseTransposeMV");
+    if (InverseTransposeMV == -1)
+    {
+        fprintf(stderr, "Could not bind uniform InverseTransposeMV\n");
+        exit(-1);
+    }
+
+    GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
+    if (LightUniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform LightPosition_worldspace\n");
+        exit(-1);
+    }
+    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 6.0f, 0.0f)));
+
+
     /* Draw platform */
     glBindVertexArray(VAO_platform);
     //printf("Plattform: %s\n", glm::to_string(ModelMatrixPlatform).c_str());
     glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixPlatform));
+    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixPlatform))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
 
@@ -340,16 +357,19 @@ void Display()
     int i;
     for(i = 0; i < 6; i++) {
         glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixPole[i]));
+        glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixPole[i]))));
         glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     }
 
     /* Draw middle pole */
     glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixMiddlePole));
+    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixMiddlePole))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw roof */
     glBindVertexArray(VAO_roof);
     glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixRoof));
+    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixRoof))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw 6 cubes */
@@ -357,6 +377,7 @@ void Display()
         glBindVertexArray(VAO_cube);
         for(i = 0; i < 6; i++) {
             glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixCubes[i]));
+            glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixCubes[i]))));
             glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -365,6 +386,7 @@ void Display()
         glBindVertexArray(VAO_model);
         for(i = 0; i < 6; i++) {
             glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixExtern[i]));
+            glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixExtern[i]))));
             glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -372,6 +394,7 @@ void Display()
     /* Draw floor */
     glBindVertexArray(VAO_floor);
     glUniformMatrix4fv(RotationUniform, 1, GL_FALSE, glm::value_ptr(ModelMatrixFloor));
+    glUniformMatrix4fv(InverseTransposeMV, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(ViewMatrix*ModelMatrixFloor))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(0);
