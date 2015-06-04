@@ -335,13 +335,13 @@ void Display()
         exit(-1);
     }
 
-    GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
+    /*GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
     if (LightUniform == -1)
     {
         fprintf(stderr, "Could not bind uniform Lightposition\n");
         exit(-1);
     }
-    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 10.0f, 0.0f)));
+    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 1.0f, 0.0f)));*/
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
@@ -437,7 +437,6 @@ void OnIdle()
     /* Set viewing transform */
     SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
     MultiplyMatrix(ViewMatrix, RotationMatrixAnimCamera, ViewMatrix);
-
 
     /* Time dependent rotation for the merry-go-around*/
     SetRotationY(angle, RotationMatrixAnimRound);
@@ -878,8 +877,8 @@ void CreateShaderProgram()
     }
 
     /* Load shader code from file */
-    VertexShaderString = LoadShader("shaders/vertexshader.vs");
-    FragmentShaderString = LoadShader("shaders/fragmentshader.fs");
+    VertexShaderString = LoadShader("shaders/vertex_phong.vs");
+    FragmentShaderString = LoadShader("shaders/fragment_phong.fs");
 
     /* Separately add vertex and fragment shader to program */
     AddShader(ShaderProgram, VertexShaderString, GL_VERTEX_SHADER);
