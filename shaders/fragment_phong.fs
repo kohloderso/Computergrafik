@@ -7,7 +7,7 @@ struct DirectionalLight
 	vec3 color;
 	vec3 position;
 	float intensity;
-};
+}
 
 out vec4 outputColor;
 
