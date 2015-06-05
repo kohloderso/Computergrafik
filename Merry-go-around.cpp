@@ -26,7 +26,6 @@
 
 /* GLM includes - adjust path as required for local installation */
 #include "glm/glm.hpp"
-#include "glm/ext.hpp"
 #include "glm/vec3.hpp" // glm::vec3
 #include "glm/gtc/matrix_transform.hpp" /* Provides glm::translate, glm::rotate, 
                                          * glm::scale, glm::perspective */
@@ -117,6 +116,11 @@ struct DirectionalLight
 
 DirectionalLight movingLight;
 DirectionalLight fixedLight;
+
+GLboolean ambientOn = GL_TRUE;
+GLboolean diffuseOn = GL_TRUE;
+GLboolean specularOn = GL_TRUE;
+GLboolean disco = GL_FALSE;
 
 /* Define normal buffers */
 glm::vec3 *normal_buffer_cube;
@@ -298,7 +302,7 @@ GLushort index_buffer_roof[] = {
 
 
 void sendUniformsLight() {
-	GLint uniform = glGetUniformLocation(ShaderProgram, "LightColor[0]");
+	GLint uniform = glGetUniformLocation(ShaderProgram, "LightColorMoving");
 	if (uniform == -1)
 	{
 	    fprintf(stderr, "Could not bind uniform LightColor[0]\n");
@@ -306,7 +310,7 @@ void sendUniformsLight() {
 	}
 	glUniform3fv(uniform, 1, glm::value_ptr(movingLight.color));
 
-    uniform = glGetUniformLocation(ShaderProgram, "LightPositions[0]");
+    uniform = glGetUniformLocation(ShaderProgram, "LightPositionMoving");
     if (uniform == -1)
     {
         fprintf(stderr, "Could not bind uniform LightPositions[0]\n");
@@ -322,7 +326,8 @@ void sendUniformsLight() {
     }
     glUniform1f(uniform, movingLight.intensity);
 
-	uniform = glGetUniformLocation(ShaderProgram, "LightColor[1]");
+    //printf("Lightsource power %f", fixedLight.intensity);
+	uniform = glGetUniformLocation(ShaderProgram, "LightColorFixed");
 	if (uniform == -1)
 	{
 	    fprintf(stderr, "Could not bind uniform lightsources[1].color\n");
@@ -330,7 +335,7 @@ void sendUniformsLight() {
 	}
 	glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.color));
 
-        uniform = glGetUniformLocation(ShaderProgram, "LightPositions[1]");
+        uniform = glGetUniformLocation(ShaderProgram, "LightPositionFixed");
         if (uniform == -1)
         {
             fprintf(stderr, "Could not bind uniform LightPositions[1]\n");
@@ -347,33 +352,29 @@ void sendUniformsLight() {
     glUniform1f(uniform, fixedLight.intensity);
 
 
-    /*sprintf(stringBuffer, "lightsources[%d].useDiffuse", i);
-    printf("%s\n", stringBuffer);
-    uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+    uniform = glGetUniformLocation(ShaderProgram, "ambientOn");
     if (uniform == -1)
     {
-        fprintf(stderr, "Could not bind uniform lightsources.useDiffuse\n");
+        fprintf(stderr, "Could not bind uniform ambientOn\n");
         exit(-1);
     }
-    glUniform1i(uniform, lights[i].useDiffuse);
+    glUniform1i(uniform, ambientOn);
 
-    sprintf(stringBuffer, "lightsources[%d].useAmbient", i);
-    uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+    uniform = glGetUniformLocation(ShaderProgram, "diffuseOn");
     if (uniform == -1)
     {
-        fprintf(stderr, "Could not bind uniform lightsources.useAmbient\n");
+        fprintf(stderr, "Could not bind uniform diffuseOn\n");
         exit(-1);
     }
-    glUniform1i(uniform, lights[i].useAmbient);
+    glUniform1i(uniform, diffuseOn);
 
-    sprintf(stringBuffer, "lightsources[%d].useSpecular", i);
-    uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+    uniform = glGetUniformLocation(ShaderProgram, "specularOn");
     if (uniform == -1)
     {
-        fprintf(stderr, "Could not bind uniform lightsources.useSpecular\n");
+        fprintf(stderr, "Could not bind uniform specularOn\n");
         exit(-1);
     }
-    glUniform1i(uniform, lights[i].useSpecular);*/
+    glUniform1i(uniform, specularOn);
 }
 /******************************************************************
 *
@@ -423,7 +424,7 @@ void Display()
         exit(-1);
     }
 
-    //sendUniformsLight();
+    sendUniformsLight();
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
@@ -536,6 +537,11 @@ void OnIdle()
 
     /* Time dependent rotation for the merry-go-around*/
     SetRotationY(angle, RotationMatrixAnimRound);
+
+    /* compute moving light */
+    if(disco) {
+        movingLight.position = glm::vec3(glm::make_mat4(RotationMatrixAnimRound) * glm::vec4(movingLight.position, 1.0f));
+    }
 
     /* Set Transformation for floor */
     SetScaling(3, 0.1, 3, scaling);
@@ -727,6 +733,24 @@ void Keyboard(unsigned char key, int x, int y)
             break;
         case 'l':
             camera_up = camera_up - 0.5;
+            break;
+        case  '3':
+            ambientOn = !ambientOn;
+            break;
+        case '4':
+            diffuseOn = !diffuseOn;
+            break;
+        case '5':
+            specularOn = !specularOn;
+            break;
+        case 'y':
+            disco = !disco;
+            break;
+        case '6':
+            fixedLight.intensity += 1;
+            break;
+        case '7':
+            fixedLight.intensity -= 1;
             break;
     }
 
@@ -1032,7 +1056,7 @@ void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* ind
     // Normalize vertex normals
     for(i = 0; i < vertexBufferSize; i++) {
         localBuffer[i] = glm::normalize(localBuffer[i]);
-        printf("[%f, %f, %f] \n", (localBuffer[i]).x, (localBuffer[i]).y, (localBuffer[i]).z);
+        //printf("[%f, %f, %f] \n", (localBuffer[i]).x, (localBuffer[i]).y, (localBuffer[i]).z);
     }
     printf("\n");
     *normalBuffer = localBuffer;
@@ -1042,13 +1066,13 @@ void initLights() {
 
     /* the outside light, it should look kind of like a sun */
     fixedLight.color = glm::vec3(1.0f, 1.0f, 0.0f); //yellow
-    fixedLight.position = glm::vec3(0.0f, 10.0f, 4.0f);
-    fixedLight.intensity = 10;
+    fixedLight.position = glm::vec3(0.0f, 5.0f, 1.0f);
+    fixedLight.intensity = 20;
 
      /* the moving light */
     movingLight.color = glm::vec3(1.0f, 1.0f, 1.0f); //white
-    movingLight.position = glm::vec3(0.0f, 10.0f, 4.0f);
-    movingLight.intensity = 3;
+    movingLight.position = glm::vec3(0.0f, 2.0f, 4.0f);
+    movingLight.intensity = 10;
 }
 
 /******************************************************************
@@ -1114,6 +1138,7 @@ void Initialize(void)
     /* Setup shaders and shader program */
     CreateShaderProgram();
 
+    initLights();
 
     /* Set projection transform */
     float fovy = 45.0;   //*M_PI/180.0;

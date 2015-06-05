@@ -29,3 +29,8 @@ Keyboard:
 
 - Key "o": move camera up
 - Key "l": move camera down
+
+Added for third assignment:
+- Key '3', '4', '5': respectively turn ambient, diffuse and specular lighting on and off
+- key '6', '7': turn intensity of the fixed light up and down
+- key 'y': disco Mode
