@@ -1,10 +1,18 @@
 #version 330
+#pragma optimize (off) // otherwise struct not working
+#define NUMLIGHTS 2
 
+struct DirectionalLight
+{
+	vec3 color;
+	vec3 position;
+	float intensity;
+};
+uniform DirectionalLight lightsources[NUMLIGHTS];
 uniform mat4 ProjectionMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ModelMatrix;
-//uniform mat4 InverseTransposeMV;
-uniform vec3 LightPosition_worldspace;
+uniform mat4 InverseTransposeMV;
 
 layout (location = 0) in vec3 Position;
 layout (location = 1) in vec3 Color;
@@ -31,12 +39,13 @@ void main()
 	//EyeDirection_cameraspace = vec3(0,0,0) - (ModelMatrix * vec4(Position, 1)).xyz;
 
 	// Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-	vec4 LightPosition_cameraspace = ViewMatrix * vec4(LightPosition_worldspace,1);
+	vec4 LightPosition_cameraspace = ViewMatrix * vec4(lightsources[0].position,1.0f);
 	//vec3 LightPosition_cameraspace = LightPosition_worldspace;
 	LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
 	
 	// Normal of the the vertex, in camera space
-	Normal_cameraspace = inverse(transpose(ViewMatrix * ModelMatrix)) * vec4(vertexNormal,0); // Use  inverse transpose because of non-uniform-scaling 
+	//Normal_cameraspace = inverse(transpose(ViewMatrix * ModelMatrix)) * vec4(vertexNormal,0); // Use  inverse transpose because of non-uniform-scaling
 	//Normal_cameraspace = ( inverse(transpose(ModelMatrix)) * vec4(vertexNormal,0)).xyz;
+	Normal_cameraspace = InverseTransposeMV * vec4(vertexNormal, 0.0f);
    	vColor = Color;
 }

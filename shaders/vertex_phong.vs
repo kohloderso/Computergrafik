@@ -3,6 +3,7 @@
 uniform mat4 ProjectionMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ModelMatrix;
+uniform mat4 InverseTransposeModel;
 
 layout (location = 0) in vec3 Position;
 layout (location = 1) in vec3 Color;
@@ -19,8 +20,8 @@ void main()
    gl_Position = ProjectionMatrix * ViewMatrix * worldPosition;
 
     // Pass normals in world space interpolated to the fragment shader
-   interpNormal = normalize(vec3(transpose(inverse(ModelMatrix)) * vec4(Normal, 0.0)));
+   interpNormal = normalize(vec3(InverseTransposeModel * vec4(Normal, 0.0)));
 
-	vColor = Color;
+   vColor = Color;
 
 }

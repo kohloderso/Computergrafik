@@ -112,13 +112,11 @@ struct DirectionalLight
 {
     glm::vec3 color;
     glm::vec3 position;
-    float diffuseIntensity;
-    GLboolean useAmbient;
-    GLboolean useDiffuse;
-    GLboolean useSpecular;
+    float intensity;
 };
 
-DirectionalLight lights[7]; // 6 lights for the merry-go-around to move with it and one outside that's not moving
+DirectionalLight movingLight;
+DirectionalLight fixedLight;
 
 /* Define normal buffers */
 glm::vec3 *normal_buffer_cube;
@@ -300,57 +298,82 @@ GLushort index_buffer_roof[] = {
 
 
 void sendUniformsLight() {
-    char stringBuffer[20];
-    for(int i = 0; i < 7; i++) {
-        sprintf(stringBuffer, "lightsources[%d].color", i);
-        //printf("%s\n", stringBuffer);
-        GLint uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+	GLint uniform = glGetUniformLocation(ShaderProgram, "lightsources[0].color");
+	if (uniform == -1)
+	{
+	    fprintf(stderr, "Could not bind uniform lightsources[0].color\n");
+	    exit(-1);
+	}
+	glUniform3fv(uniform, 1, glm::value_ptr(movingLight.color));
+
+        uniform = glGetUniformLocation(ShaderProgram, "lightsources[0].position");
         if (uniform == -1)
         {
-            fprintf(stderr, "Could not bind uniform lightsources.color\n");
+            fprintf(stderr, "Could not bind uniform lightsources[0].position\n");
             exit(-1);
         }
-        glUniform3fv(uniform, 1, glm::value_ptr(lights[i].color));
+        glUniform3fv(uniform, 1, glm::value_ptr(movingLight.position));
 
-        sprintf(stringBuffer, "lightsources[%d].position", i);
-        //printf("%s\n", stringBuffer);
-        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
-        if (uniform == -1)
-        {
-            fprintf(stderr, "Could not bind uniform lightsources.position\n");
-            exit(-1);
-        }
-        glUniform3fv(uniform, 1, glm::value_ptr(lights[i].position));
-
-        /*sprintf(stringBuffer, "lightsources[%d].useDiffuse", i);
-        printf("%s\n", stringBuffer);
-        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
-        if (uniform == -1)
-        {
-            fprintf(stderr, "Could not bind uniform lightsources.useDiffuse\n");
-            exit(-1);
-        }
-        glUniform1i(uniform, lights[i].useDiffuse);
-
-        sprintf(stringBuffer, "lightsources[%d].useAmbient", i);
-        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
-        if (uniform == -1)
-        {
-            fprintf(stderr, "Could not bind uniform lightsources.useAmbient\n");
-            exit(-1);
-        }
-        glUniform1i(uniform, lights[i].useAmbient);
-
-        sprintf(stringBuffer, "lightsources[%d].useSpecular", i);
-        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
-        if (uniform == -1)
-        {
-            fprintf(stderr, "Could not bind uniform lightsources.useSpecular\n");
-            exit(-1);
-        }
-        glUniform1i(uniform, lights[i].useSpecular);*/
-
+    uniform = glGetUniformLocation(ShaderProgram, "lightsources[0].intensity");
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform lightsources[0].intensity\n");
+        exit(-1);
     }
+    glUniform1f(uniform, movingLight.intensity);
+
+	uniform = glGetUniformLocation(ShaderProgram, "lightsources[1].color");
+	if (uniform == -1)
+	{
+	    fprintf(stderr, "Could not bind uniform lightsources[1].color\n");
+	    exit(-1);
+	}
+	glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.color));
+
+        uniform = glGetUniformLocation(ShaderProgram, "lightsources[1].position");
+        if (uniform == -1)
+        {
+            fprintf(stderr, "Could not bind uniform lightsources[1].position\n");
+            exit(-1);
+        }
+        glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.position));
+
+    uniform = glGetUniformLocation(ShaderProgram, "lightsources[1].intensity");
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform lightsources[1].intensity\n");
+        exit(-1);
+    }
+    glUniform1f(uniform, fixedLight.intensity);
+
+
+    /*sprintf(stringBuffer, "lightsources[%d].useDiffuse", i);
+    printf("%s\n", stringBuffer);
+    uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform lightsources.useDiffuse\n");
+        exit(-1);
+    }
+    glUniform1i(uniform, lights[i].useDiffuse);
+
+    sprintf(stringBuffer, "lightsources[%d].useAmbient", i);
+    uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform lightsources.useAmbient\n");
+        exit(-1);
+    }
+    glUniform1i(uniform, lights[i].useAmbient);
+
+    sprintf(stringBuffer, "lightsources[%d].useSpecular", i);
+    uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform lightsources.useSpecular\n");
+        exit(-1);
+    }
+    glUniform1i(uniform, lights[i].useSpecular);*/
 }
 /******************************************************************
 *
@@ -392,11 +415,21 @@ void Display()
         exit(-1);
     }
 
-    sendUniformsLight();
+    //GLint InverseTransposeUniform = glGetUniformLocation(ShaderProgram, "InverseTransposeModel");
+    GLint InverseTransposeUniform = glGetUniformLocation(ShaderProgram, "InverseTransposeMV");
+    if (InverseTransposeUniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform InverseTransposeModelMatrix\n");
+        exit(-1);
+    }
+
+    //sendUniformsLight();
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPlatform)))));
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPlatform)))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
 
@@ -404,16 +437,22 @@ void Display()
     int i;
     for(i = 0; i < 6; i++) {
         glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
+        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPole[i])))));
+        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPole[i])))));
         glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
     }
 
     /* Draw middle pole */
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixMiddlePole)))));
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixMiddlePole)))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw roof */
     glBindVertexArray(VAO_roof);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixRoof)))));
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixRoof)))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     /* Draw 6 cubes */
@@ -421,6 +460,8 @@ void Display()
         glBindVertexArray(VAO_cube);
         for(i = 0; i < 6; i++) {
             glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
+            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixCubes[i])))));
+ 	        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixCubes[i])))));
             glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -429,6 +470,8 @@ void Display()
         glBindVertexArray(VAO_model);
         for(i = 0; i < 6; i++) {
             glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
+            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixOther[i])))));
+ 	        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixOther[i])))));
             glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
         }
     }
@@ -436,6 +479,8 @@ void Display()
     /* Draw floor */
     glBindVertexArray(VAO_floor);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixFloor);
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixFloor)))));
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixFloor)))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(0);
@@ -924,8 +969,8 @@ void CreateShaderProgram()
     }
 
     /* Load shader code from file */
-    VertexShaderString = LoadShader("shaders/vertex_phong.vs");
-    FragmentShaderString = LoadShader("shaders/fragment_phong.fs");
+    VertexShaderString = LoadShader("shaders/vertexshader.vs");
+    FragmentShaderString = LoadShader("shaders/fragmentshader.fs");
 
     /* Separately add vertex and fragment shader to program */
     AddShader(ShaderProgram, VertexShaderString, GL_VERTEX_SHADER);
@@ -962,10 +1007,11 @@ void CreateShaderProgram()
     glUseProgram(ShaderProgram);
 }
 
-void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* indexBuffer, int indexSize, glm::vec3* normalBuffer) {
+void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* indexBuffer, int indexSize, glm::vec3** normalBuffer) {
     int i;
     // initialize normalbuffer with zeros
-    normalBuffer = (glm::vec3*) calloc(vertexBufferSize, sizeof(glm::vec3));
+    glm::vec3 *localBuffer = (glm::vec3*) calloc(vertexBufferSize, sizeof(glm::vec3));
+
     for(i = 0; i < indexSize; i += 3) {
         // get the three vertices that make the faces
         glm::vec3 p1 = glm::vec3(vertexBuffer[indexBuffer[i+0]]);
@@ -978,41 +1024,31 @@ void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* ind
         normal = glm::normalize(normal);
 
         // Store the face's normal for each of the vertices that make up the face.
-        normalBuffer[indexBuffer[i+0]] += normal;
-        normalBuffer[indexBuffer[i+1]] += normal;
-        normalBuffer[indexBuffer[i+2]] += normal;
+        localBuffer[indexBuffer[i+0]] += normal;
+        localBuffer[indexBuffer[i+1]] += normal;
+        localBuffer[indexBuffer[i+2]] += normal;
     }
 
     // Normalize vertex normals
     for(i = 0; i < vertexBufferSize; i++) {
-        normalBuffer[i] = glm::normalize(normalBuffer[i]);
-        //printf("[%f, %f, %f] ", normalBuffer[i].x, normalBuffer[i].y, normalBuffer[i].z);
+        localBuffer[i] = glm::normalize(localBuffer[i]);
+        printf("[%f, %f, %f] \n", (localBuffer[i]).x, (localBuffer[i]).y, (localBuffer[i]).z);
     }
+    printf("\n");
+    *normalBuffer = localBuffer;
 }
 
 void initLights() {
 
     /* the outside light, it should look kind of like a sun */
-    lights[0].color = glm::vec3(1.0f, 1.0f, 0.0f); //yellow
-    lights[0].position = glm::vec3(0.0f, 10.0f, 4.0f);
-    lights[0].diffuseIntensity = 3;
-    lights[0].useAmbient = GL_TRUE;
-    lights[0].useDiffuse = GL_TRUE;
-    lights[0].useSpecular = GL_TRUE;
+    fixedLight.color = glm::vec3(1.0f, 1.0f, 0.0f); //yellow
+    fixedLight.position = glm::vec3(0.0f, 10.0f, 4.0f);
+    fixedLight.intensity = 10;
 
-    /* The 6 spotlights inside the merry-go-around */
-    float posX, posY, posZ;
-    posY = 2;
-    for(int i = 1; i < 7; i++) {
-        lights[i].color = glm::vec3(1.0f, 1.0f, 1.0f); //white
-        lights[i].diffuseIntensity = 1;
-        lights[i].useAmbient = GL_TRUE;
-        lights[i].useDiffuse = GL_TRUE;
-        lights[i].useSpecular = GL_TRUE;
-        posX = vertex_buffer_platform[(i)].x/6;
-        posZ = vertex_buffer_platform[(i)].z/6;
-        lights[i].position = glm::vec3(posX, posY, posZ);
-    }
+     /* the moving light */
+    movingLight.color = glm::vec3(1.0f, 1.0f, 1.0f); //white
+    movingLight.position = glm::vec3(0.0f, 10.0f, 4.0f);
+    movingLight.intensity = 3;
 }
 
 /******************************************************************
@@ -1067,9 +1103,9 @@ void Initialize(void)
     glDepthFunc(GL_LESS);
 
     /* Compute normals */
-    computeNormals(vertex_buffer_cube, sizeof(vertex_buffer_cube)/sizeof(glm::vec3), index_buffer_cube, sizeof(index_buffer_cube)/sizeof(GLushort), normal_buffer_cube);
-    computeNormals(vertex_buffer_roof, sizeof(vertex_buffer_roof)/sizeof(glm::vec3), index_buffer_roof, sizeof(index_buffer_roof)/sizeof(GLushort), normal_buffer_roof);
-    computeNormals(vertex_buffer_platform, sizeof(vertex_buffer_platform)/sizeof(glm::vec3), index_buffer_platform, sizeof(index_buffer_platform)/sizeof(GLushort), normal_buffer_platform);
+    computeNormals(vertex_buffer_cube, sizeof(vertex_buffer_cube)/sizeof(glm::vec3), index_buffer_cube, sizeof(index_buffer_cube)/sizeof(GLushort), &normal_buffer_cube);
+    computeNormals(vertex_buffer_roof, sizeof(vertex_buffer_roof)/sizeof(glm::vec3), index_buffer_roof, sizeof(index_buffer_roof)/sizeof(GLushort), &normal_buffer_roof);
+    computeNormals(vertex_buffer_platform, sizeof(vertex_buffer_platform)/sizeof(glm::vec3), index_buffer_platform, sizeof(index_buffer_platform)/sizeof(GLushort), &normal_buffer_platform);
 
     /* Setup vertex, color, and index buffer objects */
     SetupDataBuffers();
