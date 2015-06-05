@@ -19,7 +19,7 @@ void main()
    gl_Position = ProjectionMatrix * ViewMatrix * worldPosition;
 
     // Pass normals in world space interpolated to the fragment shader
-   interpNormal = normalize(vec3(ModelMatrix * vec4(Normal, 0.0)));
+   interpNormal = normalize(vec3(transpose(inverse(ModelMatrix)) * vec4(Normal, 0.0)));
 
 	vColor = Color;
 

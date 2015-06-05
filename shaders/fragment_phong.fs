@@ -15,23 +15,23 @@ void main()
    float cosAngIncidence;
    float phongTerm;
 
-   vec3 lightPosition = vec3(100.0f, 100.0f, 100.0f);
+   vec3 lightPosition = vec3(1.0f, 6.0f, 1.0f);
    vec4 diffuseColor = vec4(vColor, 1.0f);
-float ambientIntensity = 0.5;
+float ambientIntensity = 0.4;
    float lightIntensity = 1;
-float shininessFactor = 1;
+float shininessFactor = 2;
 
    //Initialize the output color
    outputColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
    //Calculate the view direction in world space
-   vec3 viewDirection = normalize(vec3(inverse(ViewMatrix) * vec4(0.0, 0.0, 0.0, 1.0) - worldPosition));
+   vec3 viewDirection = normalize(vec3(/*inverse(ViewMatrix) * */vec4(0.0, 0.0, 0.0, 1.0) - worldPosition));
 
    
-        // Set ambient light if enabled
+        // ambient light
         outputColor = outputColor + ambientIntensity * diffuseColor;
 
-        // Calculate diffuse light
+        // diffuse light
         lightDirection = normalize(lightPosition - vec3(worldPosition));
 
         //Interpolated normals are no longer unit vectors
@@ -40,7 +40,7 @@ float shininessFactor = 1;
 
         outputColor = outputColor + lightIntensity * diffuseColor * cosAngIncidence;
 
-        // Calculate specular light
+        // specular light
         
     // reflect expects vector from light
     reflectDirection = reflect(-lightDirection, normalize(interpNormal));

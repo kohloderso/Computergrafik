@@ -310,10 +310,6 @@ void Display()
         fprintf(stderr, "Could not bind uniform ProjectionMatrix\n");
         exit(-1);
     }
-    for(int i = 0; i < 16; i++) {
-        printf("%f ", ProjectionMatrix[i]);
-    }
-    printf("\n");
     glUniformMatrix4fv(projectionUniform, 1, GL_TRUE, ProjectionMatrix);
 
     GLint ViewUniform = glGetUniformLocation(ShaderProgram, "ViewMatrix");
@@ -322,10 +318,6 @@ void Display()
         fprintf(stderr, "Could not bind uniform ViewMatrix\n");
         exit(-1);
     }
-    for(int i = 0; i < 16; i++) {
-        printf("%f ", ViewMatrix[i]);
-    }
-    printf("\n");
     glUniformMatrix4fv(ViewUniform, 1, GL_TRUE, ViewMatrix);
 
     GLint RotationUniform = glGetUniformLocation(ShaderProgram, "ModelMatrix");
@@ -335,13 +327,14 @@ void Display()
         exit(-1);
     }
 
-    /*GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
+   /* GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
     if (LightUniform == -1)
     {
         fprintf(stderr, "Could not bind uniform Lightposition\n");
         exit(-1);
     }
     glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 1.0f, 0.0f)));*/
+    //printf("%s\n", glm::to_string(glm::make_mat4(ViewMatrix)*glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)).c_str());
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
@@ -476,11 +469,7 @@ void OnIdle()
     MultiplyMatrix(translation, scaling, ModelMatrixRoof);
 
     MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixRoof, ModelMatrixRoof);
-    printf("ModelmatrixRoof ");
-    for(int i = 0; i < 16; i++) {
-        printf("%f ", ModelMatrixRoof[i]);
-    }
-    printf("\n");
+
     /* Set Transformation for cubes that additionally rotate around themselves */
     SetRotationX(-45, rotationX);
     SetRotationZ(35, rotationZ);
@@ -1063,6 +1052,10 @@ int main(int argc, char** argv)
     glutMouseFunc(Mouse);
 
     glutMainLoop();
+
+    free(normal_buffer_platform);
+    free(normal_buffer_cube);
+    free(normal_buffer_roof);
 
     /* ISO C requires main to return int */
     return 0;
