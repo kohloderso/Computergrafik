@@ -108,6 +108,18 @@ obj_scene_data data1;
 enum {Cubes=0, Other=1};
 int model = Cubes;
 
+struct DirectionalLight
+{
+    glm::vec3 color;
+    glm::vec3 position;
+    float diffuseIntensity;
+    GLboolean useAmbient;
+    GLboolean useDiffuse;
+    GLboolean useSpecular;
+};
+
+DirectionalLight lights[7]; // 6 lights for the merry-go-around to move with it and one outside that's not moving
+
 /* Define normal buffers */
 glm::vec3 *normal_buffer_cube;
 glm::vec3 *normal_buffer_platform;
@@ -287,6 +299,52 @@ GLushort index_buffer_roof[] = {
 /*----------------------------------------------------------------*/
 
 
+void sendUniformsLight() {
+    char stringBuffer[20];
+    for(int i = 0; i < 7; i++) {
+        sprintf(stringBuffer, "lightsources[%d].color", i);
+        GLint uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+        if (uniform == -1)
+        {
+            fprintf(stderr, "Could not bind uniform lightsources.color\n");
+            exit(-1);
+        }
+        glUniform3fv(uniform, 1, glm::value_ptr(lights[i].color));
+        sprintf(stringBuffer, "lightsources[%d].position", i);
+        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+        if (uniform == -1)
+        {
+            fprintf(stderr, "Could not bind uniform lightsources.position\n");
+            exit(-1);
+        }
+        glUniform3fv(uniform, 1, glm::value_ptr(lights[i].position));
+        glUniform1i(uniform, lights[i].useAmbient);
+        sprintf(stringBuffer, "lightsources[%d].useDiffuse", i);
+        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+        if (uniform == -1)
+        {
+            fprintf(stderr, "Could not bind uniform lightsources.useDiffuse\n");
+            exit(-1);
+        }
+        sprintf(stringBuffer, "lightsources[%d].useAmbient", i);
+        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+        if (uniform == -1)
+        {
+            fprintf(stderr, "Could not bind uniform lightsources.useAmbient\n");
+            exit(-1);
+        }
+        glUniform1i(uniform, lights[i].useDiffuse);
+        sprintf(stringBuffer, "lightsources[%d].useSpecular", i);
+        uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
+        if (uniform == -1)
+        {
+            fprintf(stderr, "Could not bind uniform lightsources.useSpecular\n");
+            exit(-1);
+        }
+        glUniform1i(uniform, lights[i].useSpecular);
+
+    }
+}
 /******************************************************************
 *
 * Display
@@ -327,14 +385,7 @@ void Display()
         exit(-1);
     }
 
-   /* GLint LightUniform = glGetUniformLocation(ShaderProgram, "LightPosition_worldspace");
-    if (LightUniform == -1)
-    {
-        fprintf(stderr, "Could not bind uniform Lightposition\n");
-        exit(-1);
-    }
-    glUniformMatrix4fv(LightUniform, 1, GL_FALSE, glm::value_ptr(glm::vec3(0.0f, 1.0f, 0.0f)));*/
-    //printf("%s\n", glm::to_string(glm::make_mat4(ViewMatrix)*glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)).c_str());
+    sendUniformsLight();
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
@@ -929,6 +980,31 @@ void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* ind
     for(i = 0; i < vertexBufferSize; i++) {
         normalBuffer[i] = glm::normalize(normalBuffer[i]);
         //printf("[%f, %f, %f] ", normalBuffer[i].x, normalBuffer[i].y, normalBuffer[i].z);
+    }
+}
+
+void initLights() {
+
+    /* the outside light, it should look kind of like a sun */
+    lights[0].color = glm::vec3(1.0f, 1.0f, 0.0f); //yellow
+    lights[0].position = glm::vec3(0.0f, 10.0f, 4.0f);
+    lights[0].diffuseIntensity = 3;
+    lights[0].useAmbient = GL_TRUE;
+    lights[0].useDiffuse = GL_TRUE;
+    lights[0].useSpecular = GL_TRUE;
+
+    /* The 6 spotlights inside the merry-go-around */
+    float posX, posY, posZ;
+    posY = 2;
+    for(int i = 1; i < 7; i++) {
+        lights[i].color = glm::vec3(1.0f, 1.0f, 1.0f); //white
+        lights[i].diffuseIntensity = 1;
+        lights[i].useAmbient = GL_TRUE;
+        lights[i].useDiffuse = GL_TRUE;
+        lights[i].useSpecular = GL_TRUE;
+        posX = vertex_buffer_platform[(i)].x/6;
+        posZ = vertex_buffer_platform[(i)].z/6;
+        lights[i].position = glm::vec3(posX, posY, posZ);
     }
 }
 
