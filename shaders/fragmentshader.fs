@@ -1,14 +1,13 @@
 #version 330
 
 const int NUMLIGHTS = 2;
+uniform vec4 colorUniform = vec4(0.5, 0.5, 0.5, 1.0);
+uniform bool useUniformColor = false;
 
 uniform float ambientIntensity = 0.5;
 uniform float shininess = 1;
-uniform vec4 colorUniform = vec4(0.5, 0.5, 0.5, 1.0);
-uniform bool useUniformColor = false;
 uniform vec3 LightColor[NUMLIGHTS];
 uniform float LightPower[NUMLIGHTS];
-uniform vec3 LightPositions[NUMLIGHTS];
 
 uniform bool ambientOn = true;
 uniform bool diffuseOn = true;
@@ -19,22 +18,28 @@ in vec3 vColor;
 in vec4 Position_worldspace;
 in vec4 Normal_worldspace;
 in vec4 EyeDirection_worldspace;
-in vec4 LightDirection_worldspace[NUMLIGHTS];
+//in 
+//in vec3 
 
 
 out vec4 FragColor;
 
 void main()
-{
+{vec4 LightDirection_worldspace[NUMLIGHTS];
+	vec3 LightPosition[NUMLIGHTS];
+	LightPosition[0] = vec3(0.0f, 10.0f, 3.0f);
+	LightPosition[1] = vec3(0.0f, 10.0f, 3.0f);
+
 	vec4 color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	if(ambientOn) {
 		color += ambientIntensity * vec4(vColor, 1.0f);
 	}
 	for(int i = 0; i < NUMLIGHTS; i++) {
 		
-			
+		LightDirection_worldspace[i] = vec4(LightPosition[i], 1.0f) - Position_worldspace;
+	
 		// Distance to the light
-		float distance = length( vec4(LightPositions[i], 1) - Position_worldspace );
+		float distance = length( vec4(LightPosition[i], 1) - Position_worldspace );
 
 		// Normal of the computed fragment, in camera space
 		vec4 normal = normalize( Normal_worldspace );
