@@ -303,6 +303,7 @@ void sendUniformsLight() {
     char stringBuffer[20];
     for(int i = 0; i < 7; i++) {
         sprintf(stringBuffer, "lightsources[%d].color", i);
+        //printf("%s\n", stringBuffer);
         GLint uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
         if (uniform == -1)
         {
@@ -310,7 +311,9 @@ void sendUniformsLight() {
             exit(-1);
         }
         glUniform3fv(uniform, 1, glm::value_ptr(lights[i].color));
+
         sprintf(stringBuffer, "lightsources[%d].position", i);
+        //printf("%s\n", stringBuffer);
         uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
         if (uniform == -1)
         {
@@ -318,14 +321,17 @@ void sendUniformsLight() {
             exit(-1);
         }
         glUniform3fv(uniform, 1, glm::value_ptr(lights[i].position));
-        glUniform1i(uniform, lights[i].useAmbient);
-        sprintf(stringBuffer, "lightsources[%d].useDiffuse", i);
+
+        /*sprintf(stringBuffer, "lightsources[%d].useDiffuse", i);
+        printf("%s\n", stringBuffer);
         uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
         if (uniform == -1)
         {
             fprintf(stderr, "Could not bind uniform lightsources.useDiffuse\n");
             exit(-1);
         }
+        glUniform1i(uniform, lights[i].useDiffuse);
+
         sprintf(stringBuffer, "lightsources[%d].useAmbient", i);
         uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
         if (uniform == -1)
@@ -333,7 +339,8 @@ void sendUniformsLight() {
             fprintf(stderr, "Could not bind uniform lightsources.useAmbient\n");
             exit(-1);
         }
-        glUniform1i(uniform, lights[i].useDiffuse);
+        glUniform1i(uniform, lights[i].useAmbient);
+
         sprintf(stringBuffer, "lightsources[%d].useSpecular", i);
         uniform = glGetUniformLocation(ShaderProgram, stringBuffer);
         if (uniform == -1)
@@ -341,7 +348,7 @@ void sendUniformsLight() {
             fprintf(stderr, "Could not bind uniform lightsources.useSpecular\n");
             exit(-1);
         }
-        glUniform1i(uniform, lights[i].useSpecular);
+        glUniform1i(uniform, lights[i].useSpecular);*/
 
     }
 }

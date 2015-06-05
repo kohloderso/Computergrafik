@@ -7,9 +7,9 @@ struct DirectionalLight
     vec3 color;
     vec3 position;
     float diffuseIntensity;
-    bool useAmbient;
-    bool useDiffuse;
-    bool useSpecular;
+    //bool useAmbient;
+    //bool useDiffuse;
+    //bool useSpecular;
 };
 
 uniform mat4 ViewMatrix;
