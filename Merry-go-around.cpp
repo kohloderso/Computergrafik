@@ -539,9 +539,13 @@ void OnIdle()
     SetRotationY(angle, RotationMatrixAnimRound);
 
     /* compute moving light */
+    //float rotationLight[16];
+    glm::vec3 pos = glm::vec3(0.0f, 2.0f, 4.0f);
+    //SetRotationY(delta/2000.0 * 180.0/M_PI, rotationLight);
     if(disco) {
-        movingLight.position = glm::vec3(glm::make_mat4(RotationMatrixAnimRound) * glm::vec4(movingLight.position, 1.0f));
+        movingLight.position = glm::vec3(glm::transpose(glm::make_mat4(RotationMatrixAnimRound)) * glm::vec4(pos, 1.0f));
     }
+
 
     /* Set Transformation for floor */
     SetScaling(3, 0.1, 3, scaling);
