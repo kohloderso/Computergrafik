@@ -35,12 +35,12 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include "src/texture.hpp"
 
 /* Local includes */
 extern "C"
 {
 #include "src/LoadShader.h"   /* Provides loading function for shader code */
-#include "src/LoadTexture.h"
 #include "src/Matrix.h"
 #include "src/OBJParser.h"     /* Loading function for triangle meshes in OBJ format */
 }
@@ -80,7 +80,7 @@ GLuint ShaderProgram;
 /* Variables for texture handling */
 GLuint TextureID;
 GLuint TextureUniform;
-TextureDataPtr Texture;
+
 
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */
@@ -446,6 +446,12 @@ void Display()
     }
 
     sendUniformsLight();
+
+    // Bind our texture in Texture Unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+    // Set our "myTextureSampler" sampler to use Texture Unit 0
+    glUniform1i(TextureUniform, 0);
 
 //    /* Draw platform */
 //    glBindVertexArray(VAO_platform);
@@ -1073,47 +1079,12 @@ void CreateShaderProgram()
 
 void SetupTexture(void)
 {
-    /* Allocate texture container */
-    Texture = malloc(sizeof(TextureDataPtr));
+    // Load the texture from bmp
+    TextureID = loadBMP_custom("data/uvtemplate.bmp");
 
-    int success = LoadTexture("data/uvtemplate.bmp", Texture);
-    if (!success)
-    {
-        printf("Error loading texture. Exiting.\n");
-        exit(-1);
-    }
+    // Get a handle for our "myTextureSampler" uniform
+    TextureUniform  = glGetUniformLocation(ShaderProgram, "myTextureSampler");
 
-    /* Create texture name and store in handle */
-    glGenTextures(1, &TextureID);
-
-    /* Bind texture */
-    glBindTexture(GL_TEXTURE_2D, TextureID);
-
-    /* Load texture image into memory */
-    glTexImage2D(GL_TEXTURE_2D,     /* Target texture */
-                 0,                 /* Base level */
-                 GL_RGB,            /* Each element is RGB triple */
-                 Texture->width,    /* Texture dimensions */
-                 Texture->height,
-                 0,                 /* Border should be zero */
-                 GL_BGR,            /* Data storage format for BMP file */
-                 GL_UNSIGNED_BYTE,  /* Type of pixel data, one byte per channel */
-                 Texture->data);    /* Pointer to image data  */
-
-    /* Next set up texturing parameters */
-
-    /* Repeat texture on edges when tiling */
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    /* Linear interpolation for magnification */
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    /* Trilinear MIP mapping for minification */
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    /* Note: MIP mapping not visible due to fixed, i.e. static camera */
 }
 
 /******************************************************************
