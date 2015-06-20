@@ -40,6 +40,7 @@
 extern "C"
 {
 #include "src/LoadShader.h"   /* Provides loading function for shader code */
+#include "src/LoadTexture.h"
 #include "src/Matrix.h"
 #include "src/OBJParser.h"     /* Loading function for triangle meshes in OBJ format */
 }
@@ -62,16 +63,24 @@ GLuint IBO_cube, IBO_platform, IBO_roof, IBO_model;
 /* Define handle to normal buffer objects */
 GLuint NBO_roof, NBO_cube, NBO_platform;
 
+/* Define handle to uv-buffers */
+GLuint UV_cube;
+
 GLuint VAO_cube, VAO_platform, VAO_roof, VAO_floor, VAO_model;
 
 /* Indices to vertex attributes; in this case positon and color */
-enum DataID {vPosition = 0, vColor = 1, vNormal = 2};
+enum DataID {vPosition = 0, vColor = 1, vNormal = 2, vUV = 3};
 
 /* Strings for loading and storing shader code */
 static const char* VertexShaderString;
 static const char* FragmentShaderString;
 
 GLuint ShaderProgram;
+
+/* Variables for texture handling */
+GLuint TextureID;
+GLuint TextureUniform;
+TextureDataPtr Texture;
 
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */
@@ -137,6 +146,18 @@ glm::vec3 vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
         glm::vec3(1.0,  1.0, -1.0),
         glm::vec3(-1.0,  1.0, -1.0)
 };
+
+GLfloat uv_buffer_cube[] = {
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        1.0, 0.0,
+        0.0, 0.0,
+        0.0, 1.0,
+        1.1, 1.1
+};
+
 
 GLfloat color_buffer_cube[] = { /* RGB color values for 8 vertices */
         0.0, 0.0, 1.0,
@@ -302,13 +323,13 @@ GLushort index_buffer_roof[] = {
 
 
 void sendUniformsLight() {
-	GLint uniform = glGetUniformLocation(ShaderProgram, "LightColorMoving");
-	if (uniform == -1)
-	{
-	    fprintf(stderr, "Could not bind uniform LightColor[0]\n");
-	    exit(-1);
-	}
-	glUniform3fv(uniform, 1, glm::value_ptr(movingLight.color));
+    GLint uniform = glGetUniformLocation(ShaderProgram, "LightColorMoving");
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform LightColor[0]\n");
+        exit(-1);
+    }
+    glUniform3fv(uniform, 1, glm::value_ptr(movingLight.color));
 
     uniform = glGetUniformLocation(ShaderProgram, "LightPositionMoving");
     if (uniform == -1)
@@ -327,21 +348,21 @@ void sendUniformsLight() {
     glUniform1f(uniform, movingLight.intensity);
 
     //printf("Lightsource power %f", fixedLight.intensity);
-	uniform = glGetUniformLocation(ShaderProgram, "LightColorFixed");
-	if (uniform == -1)
-	{
-	    fprintf(stderr, "Could not bind uniform lightsources[1].color\n");
-	    exit(-1);
-	}
-	glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.color));
+    uniform = glGetUniformLocation(ShaderProgram, "LightColorFixed");
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform lightsources[1].color\n");
+        exit(-1);
+    }
+    glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.color));
 
-        uniform = glGetUniformLocation(ShaderProgram, "LightPositionFixed");
-        if (uniform == -1)
-        {
-            fprintf(stderr, "Could not bind uniform LightPositions[1]\n");
-            exit(-1);
-        }
-        glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.position));
+    uniform = glGetUniformLocation(ShaderProgram, "LightPositionFixed");
+    if (uniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform LightPositions[1]\n");
+        exit(-1);
+    }
+    glUniform3fv(uniform, 1, glm::value_ptr(fixedLight.position));
 
     uniform = glGetUniformLocation(ShaderProgram, "LightPower[1]");
     if (uniform == -1)
@@ -426,56 +447,56 @@ void Display()
 
     sendUniformsLight();
 
-    /* Draw platform */
-    glBindVertexArray(VAO_platform);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
-    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPlatform)))));
-    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPlatform)))));
-    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+//    /* Draw platform */
+//    glBindVertexArray(VAO_platform);
+//    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
+//    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPlatform)))));
+//    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPlatform)))));
+//    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+//
+//
+//    /* Draw poles */
+//    int i;
+//    for(i = 0; i < 6; i++) {
+//        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
+//        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPole[i])))));
+//        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPole[i])))));
+//        glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+//    }
+//
+//    /* Draw middle pole */
+//    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
+//    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixMiddlePole)))));
+//    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixMiddlePole)))));
+//    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+//
+//    /* Draw roof */
+//    glBindVertexArray(VAO_roof);
+//    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
+//    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixRoof)))));
+//    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixRoof)))));
+//    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
 
-
-    /* Draw poles */
-    int i;
-    for(i = 0; i < 6; i++) {
-        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
-        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPole[i])))));
-        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPole[i])))));
-        glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-    }
-
-    /* Draw middle pole */
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
-    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixMiddlePole)))));
-    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixMiddlePole)))));
-    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-
-    /* Draw roof */
-    glBindVertexArray(VAO_roof);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
-    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixRoof)))));
-    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixRoof)))));
-    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-
-    /* Draw 6 cubes */
-    if(model == Cubes) {
-        glBindVertexArray(VAO_cube);
-        for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
-            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixCubes[i])))));
- 	        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixCubes[i])))));
-            glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-        }
-    }
-        /* Draw 6 objects which where loaded from the .obj file */
-    else if(model == Other) {
-        glBindVertexArray(VAO_model);
-        for(i = 0; i < 6; i++) {
-            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
-            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixOther[i])))));
- 	        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixOther[i])))));
-            glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
-        }
-    }
+//    /* Draw 6 cubes */
+//    if(model == Cubes) {
+//        glBindVertexArray(VAO_cube);
+//        for(i = 0; i < 6; i++) {
+//            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
+//            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixCubes[i])))));
+//            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixCubes[i])))));
+//            glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+//        }
+//    }
+//        /* Draw 6 objects which where loaded from the .obj file */
+//    else if(model == Other) {
+//        glBindVertexArray(VAO_model);
+//        for(i = 0; i < 6; i++) {
+//            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
+//            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixOther[i])))));
+//            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixOther[i])))));
+//            glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
+//        }
+//    }
 
     /* Draw floor */
     glBindVertexArray(VAO_floor);
@@ -483,8 +504,6 @@ void Display()
     //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixFloor)))));
     glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixFloor)))));
     glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-
-    glBindVertexArray(0);
 
     /* Swap between front and back buffer */
     glutSwapBuffers();
@@ -539,9 +558,13 @@ void OnIdle()
     SetRotationY(angle, RotationMatrixAnimRound);
 
     /* compute moving light */
+    //float rotationLight[16];
+    glm::vec3 pos = glm::vec3(0.0f, 2.0f, 4.0f);
+    //SetRotationY(delta/2000.0 * 180.0/M_PI, rotationLight);
     if(disco) {
-        movingLight.position = glm::vec3(glm::make_mat4(RotationMatrixAnimRound) * glm::vec4(movingLight.position, 1.0f));
+        movingLight.position = glm::vec3(glm::transpose(glm::make_mat4(RotationMatrixAnimRound)) * glm::vec4(pos, 1.0f));
     }
+
 
     /* Set Transformation for floor */
     SetScaling(3, 0.1, 3, scaling);
@@ -785,6 +808,10 @@ void SetupDataBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, NBO_cube);
     glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_cube), normal_buffer_cube, GL_STATIC_DRAW);
 
+    glGenBuffers(1, &UV_cube);
+    glBindBuffer(GL_ARRAY_BUFFER, UV_cube);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(uv_buffer_cube), uv_buffer_cube, GL_STATIC_DRAW);
+
     /* platform */
     glGenBuffers(1, &VBO_platform);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_platform);
@@ -911,6 +938,10 @@ void SetupVertexArrayObjects() {
     glBindBuffer(GL_ARRAY_BUFFER, NBO_cube);
     glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+    glEnableVertexAttribArray(vUV);
+    glBindBuffer(GL_ARRAY_BUFFER, UV_cube);
+    glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
@@ -1031,6 +1062,68 @@ void CreateShaderProgram()
     glUseProgram(ShaderProgram);
 }
 
+/******************************************************************
+*
+* SetupTexture
+*
+* This function is called to load the texture and initialize
+* texturing parameters
+*
+*******************************************************************/
+
+void SetupTexture(void)
+{
+    /* Allocate texture container */
+    Texture = malloc(sizeof(TextureDataPtr));
+
+    int success = LoadTexture("data/uvtemplate.bmp", Texture);
+    if (!success)
+    {
+        printf("Error loading texture. Exiting.\n");
+        exit(-1);
+    }
+
+    /* Create texture name and store in handle */
+    glGenTextures(1, &TextureID);
+
+    /* Bind texture */
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+
+    /* Load texture image into memory */
+    glTexImage2D(GL_TEXTURE_2D,     /* Target texture */
+                 0,                 /* Base level */
+                 GL_RGB,            /* Each element is RGB triple */
+                 Texture->width,    /* Texture dimensions */
+                 Texture->height,
+                 0,                 /* Border should be zero */
+                 GL_BGR,            /* Data storage format for BMP file */
+                 GL_UNSIGNED_BYTE,  /* Type of pixel data, one byte per channel */
+                 Texture->data);    /* Pointer to image data  */
+
+    /* Next set up texturing parameters */
+
+    /* Repeat texture on edges when tiling */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    /* Linear interpolation for magnification */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    /* Trilinear MIP mapping for minification */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    /* Note: MIP mapping not visible due to fixed, i.e. static camera */
+}
+
+/******************************************************************
+*
+* computeNormals
+*
+* This function is called to compute the normals for a 
+* specified vertexBuffer and indexBuffer
+*
+*******************************************************************/
 void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* indexBuffer, int indexSize, glm::vec3** normalBuffer) {
     int i;
     // initialize normalbuffer with zeros
@@ -1062,6 +1155,14 @@ void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* ind
     *normalBuffer = localBuffer;
 }
 
+/******************************************************************
+*
+* initLights
+*
+* This function is called to initialize the two lightsources
+* with appropriate parameters
+*
+*******************************************************************/
 void initLights() {
 
     /* the outside light, it should look kind of like a sun */
@@ -1069,7 +1170,7 @@ void initLights() {
     fixedLight.position = glm::vec3(0.0f, 5.0f, 1.0f);
     fixedLight.intensity = 20;
 
-     /* the moving light */
+    /* the moving light */
     movingLight.color = glm::vec3(1.0f, 1.0f, 1.0f); //white
     movingLight.position = glm::vec3(0.0f, 2.0f, 4.0f);
     movingLight.intensity = 10;
@@ -1138,6 +1239,10 @@ void Initialize(void)
     /* Setup shaders and shader program */
     CreateShaderProgram();
 
+    /* Setup texture */
+    SetupTexture();
+
+    /* Setup Lights */
     initLights();
 
     /* Set projection transform */

@@ -10,11 +10,13 @@ uniform mat4 InverseTransposeModel;
 layout (location = 0) in vec3 Position;
 layout (location = 1) in vec3 Color;
 layout (location = 2) in vec3 vertexNormal;
+layout (location = 3) in vec2 vertexUV;
 
 out vec3 vColor;
 out vec4 Position_worldspace;
 out vec4 Normal_worldspace;
 out vec4 EyeDirection_worldspace;
+out vec2 UV;
 
 
 void main()
@@ -30,4 +32,7 @@ void main()
 	// Normal of the the vertex, in world space
 	Normal_worldspace = InverseTransposeModel * vec4(vertexNormal, 0.0f);
    	vColor = Color;
+
+	// UV of the vertex.
+    	UV = vertexUV;
 }
