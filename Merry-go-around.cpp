@@ -1,11 +1,5 @@
 /******************************************************************
 *
-* RotatingCube.c
-*
-* Description: This example demonstrates a colored, rotating
-* cube in shader-based OpenGL. The use of transformation
-* matrices, perspective projection, and indexed triangle sets 
-* are shown.
 *
 * Computer Graphics Proseminar SS 2015
 * 
@@ -36,6 +30,7 @@
 #include <GL/freeglut.h>
 
 #include "src/texture.hpp"
+#include "src/scene.h"
 
 /* Local includes */
 extern "C"
@@ -51,25 +46,7 @@ extern "C"
 /* Flag for starting/stopping animation */
 GLboolean anim = GL_TRUE;
 
-/* Define handle to a vertex buffer object */
-GLuint VBO_cube, VBO_platform, VBO_roof, VBO_model;
-
-/* Define handle to a color buffer object */
-GLuint CBO_cube, CBO_platform, CBO_roof, CBO_floor;
-
-/* Define handle to an index buffer object */
-GLuint IBO_cube, IBO_platform, IBO_roof, IBO_model;
-
-/* Define handle to normal buffer objects */
-GLuint NBO_roof, NBO_cube, NBO_platform;
-
-/* Define handle to uv-buffers */
-GLuint UV_cube;
-
 GLuint VAO_cube, VAO_platform, VAO_roof, VAO_floor, VAO_model;
-
-/* Indices to vertex attributes; in this case positon and color */
-enum DataID {vPosition = 0, vColor = 1, vNormal = 2, vUV = 3};
 
 /* Strings for loading and storing shader code */
 static const char* VertexShaderString;
@@ -107,11 +84,6 @@ int oldTime = 0;
 float camera_disp = 0.0f;
 float camera_up = 0.0f;
 
-/* Buffer for loading a .obj model */
-GLfloat *vertex_buffer_data1;
-GLushort *index_buffer_data1;
-obj_scene_data data1;
-
 /* Indices to activate either the cubes or some other model which is loaded from a .obj file */
 enum {Cubes=0, Other=1};
 int model = Cubes;
@@ -130,193 +102,6 @@ GLboolean ambientOn = GL_TRUE;
 GLboolean diffuseOn = GL_TRUE;
 GLboolean specularOn = GL_TRUE;
 GLboolean disco = GL_FALSE;
-
-/* Define normal buffers */
-glm::vec3 *normal_buffer_cube;
-glm::vec3 *normal_buffer_platform;
-glm::vec3 *normal_buffer_roof;
-
-glm::vec3 vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
-        glm::vec3(-1.0, -1.0,  1.0),
-        glm::vec3(1.0, -1.0,  1.0),
-        glm::vec3(1.0,  1.0,  1.0),
-        glm::vec3(-1.0,  1.0,  1.0),
-        glm::vec3(-1.0, -1.0, -1.0),
-        glm::vec3(1.0, -1.0, -1.0),
-        glm::vec3(1.0,  1.0, -1.0),
-        glm::vec3(-1.0,  1.0, -1.0)
-};
-
-GLfloat uv_buffer_cube[] = {
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
-        0.0, 1.0,
-        1.1, 1.1
-};
-
-
-GLfloat color_buffer_cube[] = { /* RGB color values for 8 vertices */
-        0.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 1.0,
-        0.0, 1.0, 1.0,
-        0.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-};
-
-GLfloat color_buffer_floor[] = { /* RGB color values for 8 vertices */
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255,
-        220.0/255, 245.0/255, 160.0/255
-};
-
-GLushort index_buffer_cube[] = { /* Indices of 6*2 triangles (6 sides) */
-        0, 1, 2,
-        2, 3, 0,
-        1, 5, 6,
-        6, 2, 1,
-        7, 6, 5,
-        5, 4, 7,
-        4, 0, 3,
-        3, 7, 4,
-        4, 5, 1,
-        1, 0, 4,
-        3, 2, 6,
-        6, 7, 3,
-};
-
-glm::vec3 vertex_buffer_platform[] = {
-        glm::vec3(0, 0, 0),
-        glm::vec3(4, 0, 7),
-        glm::vec3(8, 0, 0),
-        glm::vec3(4, 0 , -7),
-        glm::vec3(-4, 0, -7),
-        glm::vec3(-8, 0, 0),
-        glm::vec3(-4, 0, 7),
-        glm::vec3(0, -1, 0),
-        glm::vec3(4, -1, 7),
-        glm::vec3(8, -1, 0),
-        glm::vec3(4, -1 , -7),
-        glm::vec3(-4, -1, -7),
-        glm::vec3(-8, -1, 0),
-        glm::vec3(-4, -1, 7)
-};
-
-GLfloat color_buffer_platform[] = {
-        0.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0
-};
-
-GLushort index_buffer_platform[] = {
-        0,1,2,  // top
-        0,2,3,
-        0,3,4,
-        0,4,5,
-        0,5,6,
-        0,6,1,
-        7,9,8, // bottom
-        7,10,9,
-        7,11,10,
-        7,12,11,
-        7,13,12,
-        7,8,13,
-        9,2,1, //sides
-        8,9,1,
-        10,3,2,
-        9,10,2,
-        11,4,3,
-        10,11,3,
-        12,5,4,
-        11,12,4,
-        13,6,5,
-        12,13,5,
-        8,1,6,
-        13,8,6
-};
-
-glm::vec3 vertex_buffer_roof[] = {
-        glm::vec3(0, 5, 0),
-        glm::vec3(4, 0, 7),
-        glm::vec3(8, 0, 0),
-        glm::vec3(4, 0 , -7),
-        glm::vec3(-4, 0, -7),
-        glm::vec3(-8, 0, 0),
-        glm::vec3(-4, 0, 7),
-        glm::vec3(0, -1, 0),
-        glm::vec3(4, -1, 7),
-        glm::vec3(8, -1, 0),
-        glm::vec3(4, -1 , -7),
-        glm::vec3(-4, -1, -7),
-        glm::vec3(-8, -1, 0),
-        glm::vec3(-4, -1, 7)
-};
-
-GLfloat color_buffer_roof[] = {
-        0.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0
-};
-
-GLushort index_buffer_roof[] = {
-        0,1,2,  // top
-        0,2,3,
-        0,3,4,
-        0,4,5,
-        0,5,6,
-        0,6,1,
-        7,9,8, // bottom
-        7,10,9,
-        7,11,10,
-        7,12,11,
-        7,13,12,
-        7,8,13,
-        9,2,1, //sides
-        8,9,1,
-        10,3,2,
-        9,10,2,
-        11,4,3,
-        10,11,3,
-        12,5,4,
-        11,12,4,
-        13,6,5,
-        12,13,5,
-        8,1,6,
-        13,8,6
-};
 
 
 /*----------------------------------------------------------------*/
@@ -509,7 +294,7 @@ void Display()
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixFloor);
     //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixFloor)))));
     glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixFloor)))));
-    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, count_cube(), GL_UNSIGNED_SHORT, 0);
 
     /* Swap between front and back buffer */
     glutSwapBuffers();
@@ -571,39 +356,25 @@ void OnIdle()
         movingLight.position = glm::vec3(glm::transpose(glm::make_mat4(RotationMatrixAnimRound)) * glm::vec4(pos, 1.0f));
     }
 
-
     /* Set Transformation for floor */
-    SetScaling(3, 0.1, 3, scaling);
-    SetTranslation(0, -0.5, 0, translation);
-    MultiplyMatrix(translation, scaling, ModelMatrixFloor);
+    transformationInit_floor(ModelMatrixFloor);
 
     /* Set Transformation for Platform */
-    SetScaling(0.25, 0.25, 0.25, scaling);
-    MultiplyMatrix(RotationMatrixAnimRound, scaling, ModelMatrixPlatform);
+    transformationInit_platform(ModelMatrixPlatform);
+    MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixPlatform, ModelMatrixPlatform);
 
     /* Set Transformation for the 6 outer Poles  */
-    SetScaling(0.005, 2, 0.005, scaling);
-    int i;
-    float transX, transZ;
-    float transY = 2;
-    for(i = 0; i < 6; i++) {
-        transX = vertex_buffer_platform[(i+1)].x/4;
-        transZ = vertex_buffer_platform[(i+1)].z/4;
-        SetTranslation(transX, transY, transZ, translation);
-        MultiplyMatrix(translation, scaling, ModelMatrixPole[i]);
+    transformationInit_poles(ModelMatrixPole);
+    for(int i = 0; i < 6; i++) {
         MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixPole[i], ModelMatrixPole[i]);
     }
 
     /* Set Transformation for middle pole */
-    SetScaling(0.01, 2, 0.01, scaling);
-    SetTranslation(0, 2, 0, translation);
-    MultiplyMatrix(translation, scaling, ModelMatrixMiddlePole);
+    transformationInit_middlePole(ModelMatrixMiddlePole);
     MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
-    //MultiplyMatrix(RotationMatrixAnimCamera, ModelMatrixMiddlePole, ModelMatrixMiddlePole);
 
     /* Set Transformation for roof */
-    SetScaling(0.25, 0.25, 0.25, scaling);
-    SetTranslation(0,2,0, translation);
+    transformationInit_roof(ModelMatrixRoof);
     MultiplyMatrix(translation, scaling, ModelMatrixRoof);
 
     MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixRoof, ModelMatrixRoof);
@@ -614,12 +385,12 @@ void OnIdle()
 
     SetRotationY(angle+30, RotationMatrixAnimRound);
 
-    transY = 0.4;
-    for(i = 0; i < 6; i++) {
+    //transY = 0.4;
+    for(int i = 0; i < 6; i++) {
         /* translate the points to the inner platform */
-        transX = vertex_buffer_platform[(i+1)].x/6;
-        transZ = vertex_buffer_platform[(i+1)].z/6;
-        SetTranslation(transX, transY, transZ, translation);
+        //transX = vertex_buffer_platform[(i+1)].x/6;
+        //transZ = vertex_buffer_platform[(i+1)].z/6;
+        //SetTranslation(transX, transY, transZ, translation);
 
         /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed
          * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed)
@@ -786,187 +557,6 @@ void Keyboard(unsigned char key, int x, int y)
     glutPostRedisplay();
 }
 
-
-/******************************************************************
-*
-* SetupDataBuffers
-*
-* Create buffer objects and load data into buffers
-*
-*******************************************************************/
-
-void SetupDataBuffers()
-{
-    /* cube */
-    glGenBuffers(1, &VBO_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_cube), vertex_buffer_cube, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &IBO_cube);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_cube), index_buffer_cube, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &CBO_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_cube);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_cube), color_buffer_cube, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &NBO_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_cube);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_cube), normal_buffer_cube, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &UV_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, UV_cube);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uv_buffer_cube), uv_buffer_cube, GL_STATIC_DRAW);
-
-    /* platform */
-    glGenBuffers(1, &VBO_platform);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_platform);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_platform), vertex_buffer_platform, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &IBO_platform);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_platform), index_buffer_platform, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &CBO_platform);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_platform), color_buffer_platform, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &NBO_platform);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_platform);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_platform), normal_buffer_platform, GL_STATIC_DRAW);
-
-    /* roof */
-    glGenBuffers(1, &VBO_roof);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_roof);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_roof), vertex_buffer_roof, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &IBO_roof);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_roof), index_buffer_roof, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &CBO_roof);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_roof), color_buffer_roof, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &NBO_roof);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_roof);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_roof), normal_buffer_roof, GL_STATIC_DRAW);
-
-    /* floor */
-    glGenBuffers(1, &CBO_floor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_floor);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_floor), color_buffer_floor, GL_STATIC_DRAW);
-
-    /* Model */
-    glGenBuffers(1, &VBO_model);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_model);
-    glBufferData(GL_ARRAY_BUFFER, data1.vertex_count*3*sizeof(GLfloat), vertex_buffer_data1, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &IBO_model);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_model);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data1.face_count*3*sizeof(GLushort), index_buffer_data1, GL_STATIC_DRAW);
-}
-
-void SetupVertexArrayObjects() {
-    glGenVertexArrays(1, &VAO_platform);
-    glGenVertexArrays(1, &VAO_cube);
-    glGenVertexArrays(1, &VAO_roof);
-    glGenVertexArrays(1, &VAO_floor);
-    glGenVertexArrays(1, &VAO_model);
-    GLint size; // don't really need this anymore, maybe change it to passing 0 in the glGetBufferParameteriv
-
-    /* platform */
-    glBindVertexArray(VAO_platform);
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_platform);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_platform);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vNormal);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_platform);
-    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
-    /* cube */
-    glBindVertexArray(VAO_cube);
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_cube);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vNormal);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_cube);
-    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
-    /* roof */
-    glBindVertexArray(VAO_roof);
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_roof);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vNormal);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_roof);
-    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
-    /* floor */
-    glBindVertexArray(VAO_floor);
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_floor);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vNormal);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO_cube);
-    glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vUV);
-    glBindBuffer(GL_ARRAY_BUFFER, UV_cube);
-    glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
-    /* model */
-    glBindVertexArray(VAO_model);
-
-    glEnableVertexAttribArray(vPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_model);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(vColor);
-    glBindBuffer(GL_ARRAY_BUFFER, CBO_cube);
-    glVertexAttribPointer(vColor, 3, GL_FLOAT,GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_model);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-
-}
-
 /******************************************************************
 *
 * AddShader
@@ -1087,44 +677,6 @@ void SetupTexture(void)
 
 }
 
-/******************************************************************
-*
-* computeNormals
-*
-* This function is called to compute the normals for a 
-* specified vertexBuffer and indexBuffer
-*
-*******************************************************************/
-void computeNormals(glm::vec3* vertexBuffer, int vertexBufferSize, GLushort* indexBuffer, int indexSize, glm::vec3** normalBuffer) {
-    int i;
-    // initialize normalbuffer with zeros
-    glm::vec3 *localBuffer = (glm::vec3*) calloc(vertexBufferSize, sizeof(glm::vec3));
-
-    for(i = 0; i < indexSize; i += 3) {
-        // get the three vertices that make the faces
-        glm::vec3 p1 = glm::vec3(vertexBuffer[indexBuffer[i+0]]);
-        glm::vec3 p2 = glm::vec3(vertexBuffer[indexBuffer[i+1]]);
-        glm::vec3 p3 = glm::vec3(vertexBuffer[indexBuffer[i+2]]);
-
-        glm::vec3 v1 = p2 - p1;
-        glm::vec3 v2 = p3 - p1;
-        glm::vec3 normal = glm::cross(v1, v2);
-        normal = glm::normalize(normal);
-
-        // Store the face's normal for each of the vertices that make up the face.
-        localBuffer[indexBuffer[i+0]] += normal;
-        localBuffer[indexBuffer[i+1]] += normal;
-        localBuffer[indexBuffer[i+2]] += normal;
-    }
-
-    // Normalize vertex normals
-    for(i = 0; i < vertexBufferSize; i++) {
-        localBuffer[i] = glm::normalize(localBuffer[i]);
-        //printf("[%f, %f, %f] \n", (localBuffer[i]).x, (localBuffer[i]).y, (localBuffer[i]).z);
-    }
-    printf("\n");
-    *normalBuffer = localBuffer;
-}
 
 /******************************************************************
 *
@@ -1158,39 +710,8 @@ void initLights() {
 
 void Initialize(void)
 {
-    int i;
-    int success;
 
-    /* Load first OBJ model */
-    char* filename1 = "models/teapot.obj";
-    success = parse_obj_scene(&data1, filename1);
-
-    if(!success)
-        printf("Could not load file. Exiting.\n");
-
-    /*  Copy mesh data from structs into appropriate arrays */
-    int vert = data1.vertex_count;
-    int indx = data1.face_count;
-
-    vertex_buffer_data1 = (GLfloat*) calloc (vert*3, sizeof(GLfloat));
-    index_buffer_data1 = (GLushort*) calloc (indx*3, sizeof(GLushort));
-
-    /* Vertices */
-    for(i=0; i<vert; i++)
-    {
-        vertex_buffer_data1[i*3] = (GLfloat)(*data1.vertex_list[i]).e[0];
-        vertex_buffer_data1[i*3+1] = (GLfloat)(*data1.vertex_list[i]).e[1];
-        vertex_buffer_data1[i*3+2] = (GLfloat)(*data1.vertex_list[i]).e[2];
-    }
-
-    /* Indices */
-    for(i=0; i<indx; i++)
-    {
-        index_buffer_data1[i*3] = (GLushort)(*data1.face_list[i]).vertex_index[0];
-        index_buffer_data1[i*3+1] = (GLushort)(*data1.face_list[i]).vertex_index[1];
-        index_buffer_data1[i*3+2] = (GLushort)(*data1.face_list[i]).vertex_index[2];
-    }
-
+    initVAOs(&VAO_cube, &VAO_roof, &VAO_platform, &VAO_floor, &VAO_model);
     /* Set background (clear) color to dark blue */
     glClearColor(0.0, 0.0, 0.4, 0.0);
 
@@ -1198,14 +719,8 @@ void Initialize(void)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    /* Compute normals */
-    computeNormals(vertex_buffer_cube, sizeof(vertex_buffer_cube)/sizeof(glm::vec3), index_buffer_cube, sizeof(index_buffer_cube)/sizeof(GLushort), &normal_buffer_cube);
-    computeNormals(vertex_buffer_roof, sizeof(vertex_buffer_roof)/sizeof(glm::vec3), index_buffer_roof, sizeof(index_buffer_roof)/sizeof(GLushort), &normal_buffer_roof);
-    computeNormals(vertex_buffer_platform, sizeof(vertex_buffer_platform)/sizeof(glm::vec3), index_buffer_platform, sizeof(index_buffer_platform)/sizeof(GLushort), &normal_buffer_platform);
-
-    /* Setup vertex, color, and index buffer objects */
-    SetupDataBuffers();
-    SetupVertexArrayObjects();
+    // Cull triangles which normal is not towards the camera
+    glEnable(GL_CULL_FACE);
 
     /* Setup shaders and shader program */
     CreateShaderProgram();
@@ -1272,10 +787,6 @@ int main(int argc, char** argv)
     glutMouseFunc(Mouse);
 
     glutMainLoop();
-
-    free(normal_buffer_platform);
-    free(normal_buffer_cube);
-    free(normal_buffer_roof);
 
     /* ISO C requires main to return int */
     return 0;
