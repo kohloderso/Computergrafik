@@ -238,35 +238,35 @@ void Display()
     // Set our "myTextureSampler" sampler to use Texture Unit 0
     glUniform1i(TextureUniform, 0);
 
-//    /* Draw platform */
-//    glBindVertexArray(VAO_platform);
-//    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
-//    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPlatform)))));
-//    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPlatform)))));
-//    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-//
-//
-//    /* Draw poles */
-//    int i;
-//    for(i = 0; i < 6; i++) {
-//        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
-//        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPole[i])))));
-//        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPole[i])))));
-//        glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-//    }
-//
-//    /* Draw middle pole */
-//    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
-//    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixMiddlePole)))));
-//    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixMiddlePole)))));
-//    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_platform)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-//
-//    /* Draw roof */
-//    glBindVertexArray(VAO_roof);
-//    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
-//    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixRoof)))));
-//    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixRoof)))));
-//    glDrawElements(GL_TRIANGLES, sizeof(index_buffer_roof)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+    /* Draw platform */
+    glBindVertexArray(VAO_platform);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPlatform)))));
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPlatform)))));
+    glDrawElements(GL_TRIANGLES, count_roof(), GL_UNSIGNED_SHORT, 0);
+
+
+    /* Draw poles */
+    int i;
+    for(i = 0; i < 6; i++) {
+        glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPole[i]);
+        //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPole[i])))));
+        glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPole[i])))));
+        glDrawElements(GL_TRIANGLES, count_roof(), GL_UNSIGNED_SHORT, 0);
+    }
+
+    /* Draw middle pole */
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixMiddlePole);
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixMiddlePole)))));
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixMiddlePole)))));
+    glDrawElements(GL_TRIANGLES, count_roof(), GL_UNSIGNED_SHORT, 0);
+
+    /* Draw roof */
+    glBindVertexArray(VAO_roof);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixRoof);
+    //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixRoof)))));
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixRoof)))));
+    glDrawElements(GL_TRIANGLES, count_roof(), GL_UNSIGNED_SHORT, 0);
 
 //    /* Draw 6 cubes */
 //    if(model == Cubes) {

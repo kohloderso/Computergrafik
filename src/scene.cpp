@@ -43,7 +43,7 @@ GLuint IBO_cube, IBO_platform, IBO_roof, IBO_model;
 GLuint NBO_roof, NBO_cube, NBO_platform;
 
 /* Define handle to uv-buffers */
-GLuint UV_cube;
+GLuint UV_cube, UV_roof;
 
 GLuint VAO_c, VAO_p, VAO_r, VAO_f, VAO_m;
 
@@ -106,6 +106,8 @@ GLfloat color_buffer_floor[] = { /* RGB color values for 8 vertices */
 };
 
 GLushort index_buffer_cube[] = { /* Indices of 6*2 triangles (6 sides) */
+        3, 2, 6,
+        6, 7, 3,
         0, 1, 2,
         2, 3, 0,
         1, 5, 6,
@@ -116,8 +118,6 @@ GLushort index_buffer_cube[] = { /* Indices of 6*2 triangles (6 sides) */
         3, 7, 4,
         4, 5, 1,
         1, 0, 4,
-        3, 2, 6,
-        6, 7, 3,
 };
 
 glm::vec3 vertex_buffer_platform[] = {
@@ -136,6 +136,7 @@ glm::vec3 vertex_buffer_platform[] = {
         glm::vec3(-8, -1, 0),
         glm::vec3(-4, -1, 7)
 };
+
 
 GLfloat color_buffer_platform[] = {
         0.0, 0.0, 0.0,
@@ -196,6 +197,23 @@ glm::vec3 vertex_buffer_roof[] = {
         glm::vec3(-4, -1, -7),
         glm::vec3(-8, -1, 0),
         glm::vec3(-4, -1, 7)
+};
+
+GLfloat uv_buffer_roof[] = {
+        0.5, 0.5,
+        0.75, 1,
+        1.0, 0.5,
+        0.75, 0.0,
+        0.25, 0.0,
+        0.0, 0.5,
+        0.25, 1.0,
+        0.0, 0.0,
+        0.0, 1.0,
+        1.0, 1.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        1.0, 1.0,
+        0.0, 1.0
 };
 
 GLfloat color_buffer_roof[] = {
@@ -304,6 +322,10 @@ void SetupDataBuffers()
         glBindBuffer(GL_ARRAY_BUFFER, CBO_roof);
         glBufferData(GL_ARRAY_BUFFER, sizeof(color_buffer_roof), color_buffer_roof, GL_STATIC_DRAW);
 
+        glGenBuffers(1, &UV_roof);
+        glBindBuffer(GL_ARRAY_BUFFER, UV_roof);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(uv_buffer_roof), uv_buffer_roof, GL_STATIC_DRAW);
+
         glGenBuffers(1, &NBO_roof);
         glBindBuffer(GL_ARRAY_BUFFER, NBO_roof);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*14, normal_buffer_roof, GL_STATIC_DRAW);
@@ -346,6 +368,10 @@ void SetupVertexArrayObjects() {
         glBindBuffer(GL_ARRAY_BUFFER, NBO_platform);
         glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+        glEnableVertexAttribArray(vUV);
+        glBindBuffer(GL_ARRAY_BUFFER, UV_roof);
+        glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
         glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
@@ -381,6 +407,10 @@ void SetupVertexArrayObjects() {
         glEnableVertexAttribArray(vNormal);
         glBindBuffer(GL_ARRAY_BUFFER, NBO_roof);
         glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glEnableVertexAttribArray(vUV);
+        glBindBuffer(GL_ARRAY_BUFFER, UV_roof);
+        glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
         glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -509,6 +539,10 @@ void transformationInit_middlePole(float *result) {
 
 int count_cube() {
         return sizeof(index_buffer_cube)/sizeof(GLushort);
+}
+
+int count_roof() {
+        return sizeof(index_buffer_roof)/sizeof(GLushort);
 }
 
 void initVAOs(GLuint *VAO_cube_ptr, GLuint *VAO_roof_ptr, GLuint *VAO_platform_ptr, GLuint *VAO_floor_ptr, GLuint *VAO_model_ptr) {
