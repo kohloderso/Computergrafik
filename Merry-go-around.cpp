@@ -670,7 +670,7 @@ void CreateShaderProgram()
 void SetupTexture(void)
 {
     // Load the texture from bmp
-    TextureID = loadBMP_custom("data/uvtemplate.bmp");
+    TextureID = loadBMP_custom("data/floor.bmp");
 
     // Get a handle for our "myTextureSampler" uniform
     TextureUniform  = glGetUniformLocation(ShaderProgram, "myTextureSampler");
