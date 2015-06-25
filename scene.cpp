@@ -61,10 +61,10 @@ glm::vec3 *normal_buffer_platform;
 glm::vec3 *normal_buffer_roof;
 
 GLfloat vertex_buffer_billboard[] = {
-        -1.0f, 3.0f, 3.0f,
-        1.0f, 3.0f, 3.0f,
-        -1.0f,  4.5f, 3.0f,
-        1.0f,  4.5f, 3.0f,
+        -1.5f, 2.0f, 3.0f,
+        1.5f, 2.0f, 3.0f,
+        -1.5f,  4.5f, 3.0f,
+        1.5f,  4.5f, 3.0f,
 };
 
 GLfloat uv_buffer_billboard[] = {

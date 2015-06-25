@@ -86,7 +86,7 @@ void main()
 	}
 	FragColor = color;
 	if(billBoard) {
-		FragColor = vec4(groundColor, 0.3);
+		FragColor = vec4(groundColor, 0.5);
 	}
 
 }

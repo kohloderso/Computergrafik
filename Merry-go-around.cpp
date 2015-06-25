@@ -55,7 +55,7 @@ static const char* FragmentShaderString;
 GLuint ShaderProgram;
 
 /* Variables for texture handling */
-GLuint TextureID, TextureID_2;
+GLuint TextureID, TextureID_2, TextureID_billboard;
 GLuint TextureUniform;
 
 
@@ -235,7 +235,6 @@ void Display()
 
     // Bind our texture in Texture Unit 0
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, TextureID);
     // Set our "myTextureSampler" sampler to use Texture Unit 0
     glUniform1i(TextureUniform, 0);
 
@@ -248,21 +247,13 @@ void Display()
     glUniform1i(textureEnableUniform, true);
 
     GLint billBoardOn = glGetUniformLocation(ShaderProgram, "billBoard");
-    if (lightingDisabled == -1)
+    if (billBoardOn == -1)
     {
         fprintf(stderr, "Could not bind uniform billBoard\n");
         exit(-1);
     }
-    glUniform1i(billBoardOn, true);
-    /* Draw billboard */
-    glBindVertexArray(VAO_billboard);
-    //SetIdentityMatrix(ModelMatrixBillboard);
-    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixBillboard);
-    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixBillboard)))));
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    // enable lighting for all other geometry
-    glUniform1i(billBoardOn, false);
+    glBindTexture(GL_TEXTURE_2D, TextureID);
 
     /* Draw platform */
     glBindVertexArray(VAO_platform);
@@ -325,7 +316,17 @@ void Display()
         }
     }
 
-   
+    glUniform1i(textureEnableUniform, true);
+    /* Draw billboard */
+    glUniform1i(billBoardOn, true);
+    glBindTexture(GL_TEXTURE_2D, TextureID_billboard);
+    glBindVertexArray(VAO_billboard);
+    //SetIdentityMatrix(ModelMatrixBillboard);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixBillboard);
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixBillboard)))));
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glUniform1i(billBoardOn, false);
+
     /* Swap between front and back buffer */
     glutSwapBuffers();
 }
@@ -692,6 +693,8 @@ void SetupTexture(void)
     TextureID = loadBMP_custom("data/floor.bmp");
     
     TextureID_2 = loadBMP_custom("data/grass.bmp");
+
+    TextureID_billboard = loadBMP_custom("data/controls.bmp");
 
     // Get a handle for our "myTextureSampler" uniform
     TextureUniform  = glGetUniformLocation(ShaderProgram, "myTextureSampler");
