@@ -46,7 +46,7 @@ extern "C"
 /* Flag for starting/stopping animation */
 GLboolean anim = GL_TRUE;
 
-GLuint VAO_cube, VAO_platform, VAO_roof, VAO_floor, VAO_model;
+GLuint VAO_cube, VAO_platform, VAO_roof, VAO_floor, VAO_model, VAO_billboard;
 
 /* Strings for loading and storing shader code */
 static const char* VertexShaderString;
@@ -62,7 +62,7 @@ GLuint TextureUniform;
 float ProjectionMatrix[16]; /* Perspective projection matrix */
 float ViewMatrix[16]; /* Camera view matrix */
 float ModelMatrixPole[6][16], ModelMatrixPlatform[16], ModelMatrixRoof[16], ModelMatrixMiddlePole[16], ModelMatrixCubes[6][16], ModelMatrixOther[6][16];
-float ModelMatrixFloor[16];
+float ModelMatrixFloor[16], ModelMatrixBillboard[16];
 
 float RotationMatrixAnimX[16];
 float RotationMatrixAnimY[16];
@@ -230,6 +230,7 @@ void Display()
         exit(-1);
     }
 
+    /* send the parameters for the lighting */
     sendUniformsLight();
 
     // Bind our texture in Texture Unit 0
@@ -245,7 +246,24 @@ void Display()
         exit(-1);
     }
     glUniform1i(textureEnableUniform, true);
-    
+
+    GLint billBoardOn = glGetUniformLocation(ShaderProgram, "billBoard");
+    if (lightingDisabled == -1)
+    {
+        fprintf(stderr, "Could not bind uniform billBoard\n");
+        exit(-1);
+    }
+    glUniform1i(billBoardOn, true);
+    /* Draw billboard */
+    glBindVertexArray(VAO_billboard);
+    //SetIdentityMatrix(ModelMatrixBillboard);
+    glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixBillboard);
+    glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixBillboard)))));
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    // enable lighting for all other geometry
+    glUniform1i(billBoardOn, false);
+
     /* Draw platform */
     glBindVertexArray(VAO_platform);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
@@ -352,6 +370,7 @@ void OnIdle()
 
     /* Set viewing transform */
     SetTranslation(0.0, camera_up, camera_disp, ViewMatrix);
+    //ModelMatrixBillboard = glm::inverse(glm::make_mat4(ViewMatrix)) * glm::inverse(glm::make_mat4(RotationMatrixAnimCamera)) * glm::make_mat4(ViewMatrix);
     MultiplyMatrix(ViewMatrix, RotationMatrixAnimCamera, ViewMatrix);
 
     /* Time dependent rotation for the merry-go-around*/
@@ -394,6 +413,23 @@ void OnIdle()
 	MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixOther[i], ModelMatrixOther[i]);
     }
 
+
+    ModelMatrixBillboard[0] = ViewMatrix[0];
+    ModelMatrixBillboard[1] = ViewMatrix[4];
+    ModelMatrixBillboard[2] = ViewMatrix[8];
+    ModelMatrixBillboard[3] = 0;//ViewMatrix[3];
+    ModelMatrixBillboard[4] = ViewMatrix[1];
+    ModelMatrixBillboard[5] = ViewMatrix[5];
+    ModelMatrixBillboard[6] = ViewMatrix[9];
+    ModelMatrixBillboard[7] = 0;//ViewMatrix[7];
+    ModelMatrixBillboard[8] = ViewMatrix[2];
+    ModelMatrixBillboard[9] = ViewMatrix[6];
+    ModelMatrixBillboard[10] = ViewMatrix[10];
+    ModelMatrixBillboard[11] = 0; //ViewMatrix[11];
+    ModelMatrixBillboard[12] = 0;
+    ModelMatrixBillboard[13] = 0;
+    ModelMatrixBillboard[14] = 0;
+    ModelMatrixBillboard[15] = 1;
 
     /* Request redrawing of window content */
     glutPostRedisplay();
@@ -696,13 +732,17 @@ void initLights() {
 void Initialize(void)
 {
 
-    initVAOs(&VAO_cube, &VAO_roof, &VAO_platform, &VAO_floor, &VAO_model);
+    initVAOs(&VAO_cube, &VAO_roof, &VAO_platform, &VAO_floor, &VAO_model, &VAO_billboard);
     /* Set background (clear) color to dark blue */
     glClearColor(0.0, 0.0, 0.4, 0.0);
 
     /* Enable depth testing */
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+
+    // Enable blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Cull triangles which normal is not towards the camera
     //glEnable(GL_CULL_FACE);

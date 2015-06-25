@@ -31,7 +31,7 @@ extern "C"
 }
 
 /* Define handle to a vertex buffer object */
-GLuint VBO_cube, VBO_platform, VBO_roof, VBO_model;
+GLuint VBO_cube, VBO_platform, VBO_roof, VBO_model, VBO_billboard;
 
 /* Define handle to a color buffer object */
 GLuint CBO_cube, CBO_platform, CBO_roof, CBO_floor;
@@ -43,9 +43,9 @@ GLuint IBO_cube, IBO_platform, IBO_roof, IBO_model;
 GLuint NBO_roof, NBO_cube, NBO_platform;
 
 /* Define handle to uv-buffers */
-GLuint UV_cube, UV_roof;
+GLuint UV_cube, UV_roof, UV_billboard;
 
-GLuint VAO_c, VAO_p, VAO_r, VAO_f, VAO_m;
+GLuint VAO_c, VAO_p, VAO_r, VAO_f, VAO_m, VAO_b;
 
 /* Indices to vertex attributes; in this case positon, color, normals and UVs */
 enum DataID {vPosition = 0, vColor = 1, vNormal = 2, vUV = 3};
@@ -59,6 +59,20 @@ obj_scene_data data1;
 glm::vec3 *normal_buffer_cube;
 glm::vec3 *normal_buffer_platform;
 glm::vec3 *normal_buffer_roof;
+
+GLfloat vertex_buffer_billboard[] = {
+        -1.0f, 3.0f, 3.0f,
+        1.0f, 3.0f, 3.0f,
+        -1.0f,  4.5f, 3.0f,
+        1.0f,  4.5f, 3.0f,
+};
+
+GLfloat uv_buffer_billboard[] = {
+        0.0, 0.0,
+        1.0, 0.0,
+        0.0, 1.0,
+        1.0, 1.0
+};
 
 glm::vec3 vertex_buffer_cube[] = { /* 8 cube vertices XYZ */
         glm::vec3(-1.0, -1.0,  1.0),
@@ -271,6 +285,15 @@ GLushort index_buffer_roof[] = {
 
 void SetupDataBuffers()
 {
+        /* billboard */
+        glGenBuffers(1, &VBO_billboard);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_billboard);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_billboard), vertex_buffer_billboard, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &UV_billboard);
+        glBindBuffer(GL_ARRAY_BUFFER, UV_billboard);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(uv_buffer_billboard), uv_buffer_billboard, GL_STATIC_DRAW);
+
         /* cube */
         glGenBuffers(1, &VBO_cube);
         glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
@@ -346,12 +369,24 @@ void SetupDataBuffers()
 }
 
 void SetupVertexArrayObjects() {
+        glGenVertexArrays(1, &VAO_b);
         glGenVertexArrays(1, &VAO_p);
         glGenVertexArrays(1, &VAO_c);
         glGenVertexArrays(1, &VAO_r);
         glGenVertexArrays(1, &VAO_f);
         glGenVertexArrays(1, &VAO_m);
         GLint size; // don't really need this anymore, maybe change it to passing 0 in the glGetBufferParameteriv
+
+        /* billboard */
+        glBindVertexArray(VAO_b);
+
+        glEnableVertexAttribArray(vPosition);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_billboard);
+        glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glEnableVertexAttribArray(vUV);
+        glBindBuffer(GL_ARRAY_BUFFER, UV_billboard);
+        glVertexAttribPointer(vUV, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
         /* platform */
         glBindVertexArray(VAO_p);
@@ -585,7 +620,7 @@ int count_teapots() {
 	return data1.face_count * 3;
 }
 
-void initVAOs(GLuint *VAO_cube_ptr, GLuint *VAO_roof_ptr, GLuint *VAO_platform_ptr, GLuint *VAO_floor_ptr, GLuint *VAO_model_ptr) {
+void initVAOs(GLuint *VAO_cube_ptr, GLuint *VAO_roof_ptr, GLuint *VAO_platform_ptr, GLuint *VAO_floor_ptr, GLuint *VAO_model_ptr, GLuint *VAO_billboard_ptr) {
         int i;
         int success;
 
@@ -633,6 +668,7 @@ void initVAOs(GLuint *VAO_cube_ptr, GLuint *VAO_roof_ptr, GLuint *VAO_platform_p
         *VAO_cube_ptr = VAO_c;
         *VAO_floor_ptr = VAO_f;
         *VAO_roof_ptr = VAO_r;
+        *VAO_billboard_ptr = VAO_b;
 }
 
 

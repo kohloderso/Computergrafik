@@ -16,6 +16,7 @@ uniform sampler2D myTextureSampler;
 uniform bool ambientOn = true;
 uniform bool diffuseOn = true;
 uniform bool specularOn = true;
+uniform bool billBoard = true;
 
 // Interpolated values from the vertex shaders
 in vec3 vColor;
@@ -84,6 +85,8 @@ void main()
 		}
 	}
 	FragColor = color;
-	//FragColor = vec4(vColor, 1);
+	if(billBoard) {
+		FragColor = vec4(groundColor, 0.3);
+	}
 
 }
