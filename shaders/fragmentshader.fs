@@ -9,6 +9,7 @@ uniform vec3 LightColorMoving;
 uniform vec3 LightPositionFixed;
 uniform vec3 LightPositionMoving;
 uniform float LightPower[NUMLIGHTS];
+uniform bool enableTexture = true;
 
 uniform sampler2D myTextureSampler;
 
@@ -30,14 +31,15 @@ void main()
 	vec3 LightColor;
 	vec3 LightPosition;
 	vec4 LightDirection_worldspace[NUMLIGHTS];
-	//vec3 LightPosition[NUMLIGHTS];
-	//LightPosition[0] = vec3(0.0f, 3.0f, 3.0f);
-	//LightPosition[1] = vec3(0.0f, 10.0f, 3.0f);
-
-	vec4 texColor = texture( myTextureSampler, UV );
+	vec3 groundColor;
+	if(enableTexture) {
+	    groundColor = vec3(texture( myTextureSampler, UV ));
+	} else {
+	    groundColor = vColor;
+	}
 	vec4 color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	if(ambientOn) {
-		color += ambientIntensity * vec4(vColor, 1.0f);
+		color += ambientIntensity * vec4(groundColor, 1.0f); //vec4(vColor, 1.0f);
 	}
 	for(int i = 0; i < NUMLIGHTS; i++) {
 		if(i == 0) {
@@ -75,7 +77,7 @@ void main()
 		float cosAlpha = clamp( dot( eyevector,reflection ), 0,1 );
 
 		if(diffuseOn) {
-			color += vec4(vColor, 1.0f) * vec4(LightColor, 1.0f) * LightPower[i] * cosTheta/(distance*distance);
+			color += vec4(groundColor, 1.0f) * vec4(LightColor, 1.0f) * LightPower[i] * cosTheta/(distance*distance);
 		}
 		if(specularOn) {
 			color += vec4(LightColor, 1.0f) * LightPower[i] * pow(cosAlpha,shininess) / (distance*distance);

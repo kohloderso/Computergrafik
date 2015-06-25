@@ -25,9 +25,9 @@
 /* Local includes */
 extern "C"
 {
-#include "LoadShader.h"   /* Provides loading function for shader code */
-#include "Matrix.h"
-#include "OBJParser.h"     /* Loading function for triangle meshes in OBJ format */
+#include "src/LoadShader.h"   /* Provides loading function for shader code */
+#include "src/Matrix.h"
+#include "src/OBJParser.h"     /* Loading function for triangle meshes in OBJ format */
 }
 
 /* Define handle to a vertex buffer object */
@@ -370,7 +370,7 @@ void SetupVertexArrayObjects() {
 
         glEnableVertexAttribArray(vUV);
         glBindBuffer(GL_ARRAY_BUFFER, UV_roof);
-        glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(vUV, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_platform);
         glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -410,7 +410,7 @@ void SetupVertexArrayObjects() {
 
         glEnableVertexAttribArray(vUV);
         glBindBuffer(GL_ARRAY_BUFFER, UV_roof);
-        glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(vUV, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_roof);
         glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -432,7 +432,7 @@ void SetupVertexArrayObjects() {
 
         glEnableVertexAttribArray(vUV);
         glBindBuffer(GL_ARRAY_BUFFER, UV_cube);
-        glVertexAttribPointer(vUV, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(vUV, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_cube);
         glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -537,12 +537,52 @@ void transformationInit_middlePole(float *result) {
         MultiplyMatrix(translation, scaling, result);
 }
 
+void transformationInit_cube_model(float result_cubes[6][16], float result_teapots[6][16], float angle) {
+	 /* Set Transformation for cubes that additionally rotate around themselves */
+	 float rotationX[16];
+	 float rotationZ[16];
+	 float rotationY[16];
+	 float translation[16];
+	 float scaling[16];
+    SetRotationX(-45, rotationX);
+    SetRotationZ(35, rotationZ);
+
+    float transX, transZ;
+    float transY = 0.4;
+    for(int i = 0; i < 6; i++) {
+        /* translate the points to the inner platform */
+        transX = vertex_buffer_platform[(i+1)].x/6;
+        transZ = vertex_buffer_platform[(i+1)].z/6;
+        SetTranslation(transX, transY, transZ, translation);
+
+        /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed
+         * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed)
+         */
+        SetScaling(0.25, 0.25, 0.25, scaling);
+        SetRotationY(-2*angle * (i%3 +1), rotationY);
+        MultiplyMatrix(rotationX, scaling, result_cubes[i]);
+        MultiplyMatrix(rotationZ, result_cubes[i], result_cubes[i]);
+        MultiplyMatrix(rotationY, result_cubes[i], result_cubes[i]);
+        MultiplyMatrix(translation, result_cubes[i], result_cubes[i]);
+        
+        /* Set ModelMatrices for alternative Objects */
+        SetScaling(0.2, 0.2, 0.2, scaling);
+        MultiplyMatrix(rotationY, scaling, result_teapots[i]);
+        MultiplyMatrix(translation, result_teapots[i], result_teapots[i]);
+
+    }
+}
+
 int count_cube() {
         return sizeof(index_buffer_cube)/sizeof(GLushort);
 }
 
 int count_roof() {
         return sizeof(index_buffer_roof)/sizeof(GLushort);
+}
+
+int count_teapots() {
+	return data1.face_count * 3;
 }
 
 void initVAOs(GLuint *VAO_cube_ptr, GLuint *VAO_roof_ptr, GLuint *VAO_platform_ptr, GLuint *VAO_floor_ptr, GLuint *VAO_model_ptr) {

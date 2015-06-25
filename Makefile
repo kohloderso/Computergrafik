@@ -22,7 +22,7 @@ $(TARGET).o: $(TARGET).cpp
 $(BUILD_DIR)/%.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 
-$(BUILD_DIR)/%.o: %.cpp
+%.o: %.cpp
 	$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 
 clean:
@@ -31,6 +31,6 @@ clean:
 .PHONY: clean
 
 # Dependencies
-$(TARGET): $(BUILD_DIR)/LoadShader.o $(BUILD_DIR)/Matrix.o $(BUILD_DIR)/StringExtra.o $(BUILD_DIR)/OBJParser.o  $(BUILD_DIR)/List.o $(BUILD_DIR)/texture.o $(BUILD_DIR)/scene.o| $(BUILD_DIR)
+$(TARGET): $(BUILD_DIR)/LoadShader.o $(BUILD_DIR)/Matrix.o $(BUILD_DIR)/StringExtra.o $(BUILD_DIR)/OBJParser.o  $(BUILD_DIR)/List.o $(BUILD_DIR)/texture.o scene.o| $(BUILD_DIR)
 
 

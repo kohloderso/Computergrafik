@@ -30,7 +30,7 @@
 #include <GL/freeglut.h>
 
 #include "src/texture.hpp"
-#include "src/scene.h"
+#include "scene.h"
 
 /* Local includes */
 extern "C"
@@ -55,7 +55,7 @@ static const char* FragmentShaderString;
 GLuint ShaderProgram;
 
 /* Variables for texture handling */
-GLuint TextureID;
+GLuint TextureID, TextureID_2;
 GLuint TextureUniform;
 
 
@@ -238,14 +238,21 @@ void Display()
     // Set our "myTextureSampler" sampler to use Texture Unit 0
     glUniform1i(TextureUniform, 0);
 
+    GLint textureEnableUniform = glGetUniformLocation(ShaderProgram, "enableTexture");
+    if (textureEnableUniform == -1)
+    {
+        fprintf(stderr, "Could not bind uniform enableTexture\n");
+        exit(-1);
+    }
+    glUniform1i(textureEnableUniform, true);
+    
     /* Draw platform */
     glBindVertexArray(VAO_platform);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixPlatform);
     //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixPlatform)))));
     glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixPlatform)))));
     glDrawElements(GL_TRIANGLES, count_roof(), GL_UNSIGNED_SHORT, 0);
-
-
+    
     /* Draw poles */
     int i;
     for(i = 0; i < 6; i++) {
@@ -267,35 +274,40 @@ void Display()
     //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixRoof)))));
     glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixRoof)))));
     glDrawElements(GL_TRIANGLES, count_roof(), GL_UNSIGNED_SHORT, 0);
-
-//    /* Draw 6 cubes */
-//    if(model == Cubes) {
-//        glBindVertexArray(VAO_cube);
-//        for(i = 0; i < 6; i++) {
-//            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
-//            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixCubes[i])))));
-//            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixCubes[i])))));
-//            glDrawElements(GL_TRIANGLES, sizeof(index_buffer_cube)/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-//        }
-//    }
-//        /* Draw 6 objects which where loaded from the .obj file */
-//    else if(model == Other) {
-//        glBindVertexArray(VAO_model);
-//        for(i = 0; i < 6; i++) {
-//            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
-//            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixOther[i])))));
-//            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixOther[i])))));
-//            glDrawElements(GL_TRIANGLES, data1.face_count * 3, GL_UNSIGNED_SHORT, 0);
-//        }
-//    }
-
-    /* Draw floor */
+ 
+    /* Draw floor with different texture */
+    glBindTexture(GL_TEXTURE_2D, TextureID_2);
+    
     glBindVertexArray(VAO_floor);
     glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixFloor);
     //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixFloor)))));
     glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixFloor)))));
     glDrawElements(GL_TRIANGLES, count_cube(), GL_UNSIGNED_SHORT, 0);
 
+    glUniform1i(textureEnableUniform, false);
+    
+    /* Draw 6 cubes */
+    if(model == Cubes) {
+        glBindVertexArray(VAO_cube);
+        for(i = 0; i < 6; i++) {
+            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixCubes[i]);
+            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixCubes[i])))));
+            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixCubes[i])))));
+            glDrawElements(GL_TRIANGLES, count_cube(), GL_UNSIGNED_SHORT, 0);
+        }
+    }
+    /* Draw 6 objects which where loaded from the .obj file */
+    else if(model == Other) {
+        glBindVertexArray(VAO_model);
+        for(i = 0; i < 6; i++) {
+            glUniformMatrix4fv(RotationUniform, 1, GL_TRUE, ModelMatrixOther[i]);
+            //glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ViewMatrix) * glm::make_mat4(ModelMatrixOther[i])))));
+            glUniformMatrix4fv(InverseTransposeUniform, 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(glm::make_mat4(ModelMatrixOther[i])))));
+            glDrawElements(GL_TRIANGLES, count_teapots(), GL_UNSIGNED_SHORT, 0);
+        }
+    }
+
+   
     /* Swap between front and back buffer */
     glutSwapBuffers();
 }
@@ -312,9 +324,6 @@ void Display()
 
 void OnIdle()
 {
-    float rotationX[16], rotationY[16], rotationZ[16];
-    float scaling[16];
-    float translation[16];
 
     /* Determine delta time between two frames to ensure constant animation */
     int newTime = glutGet(GLUT_ELAPSED_TIME);
@@ -375,40 +384,14 @@ void OnIdle()
 
     /* Set Transformation for roof */
     transformationInit_roof(ModelMatrixRoof);
-    MultiplyMatrix(translation, scaling, ModelMatrixRoof);
-
     MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixRoof, ModelMatrixRoof);
 
     /* Set Transformation for cubes that additionally rotate around themselves */
-    SetRotationX(-45, rotationX);
-    SetRotationZ(35, rotationZ);
-
+    transformationInit_cube_model(ModelMatrixCubes, ModelMatrixOther, angle);
     SetRotationY(angle+30, RotationMatrixAnimRound);
-
-    //transY = 0.4;
     for(int i = 0; i < 6; i++) {
-        /* translate the points to the inner platform */
-        //transX = vertex_buffer_platform[(i+1)].x/6;
-        //transZ = vertex_buffer_platform[(i+1)].z/6;
-        //SetTranslation(transX, transY, transZ, translation);
-
-        /* set the rotation for each cube, they will rotate in the opposite direction of the platform and each cube rotates at a different speed
-         * (1. and 4. cube twice the speed of the platform, 2. and 5. four times the speed of the platform and the 3. and 6. cube eight times the speed)
-         */
-        SetScaling(0.25, 0.25, 0.25, scaling);
-        SetRotationY(-2*angle * (i%3 +1), rotationY);
-        MultiplyMatrix(rotationX, scaling, ModelMatrixCubes[i]);
-        MultiplyMatrix(rotationZ, ModelMatrixCubes[i], ModelMatrixCubes[i]);
-        MultiplyMatrix(rotationY, ModelMatrixCubes[i], ModelMatrixCubes[i]);
-        MultiplyMatrix(translation, ModelMatrixCubes[i], ModelMatrixCubes[i]);
         MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixCubes[i], ModelMatrixCubes[i]);
-
-        /* Set ModelMatrices for alternative Objects */
-        SetScaling(0.2, 0.2, 0.2, scaling);
-        MultiplyMatrix(rotationY, scaling, ModelMatrixOther[i]);
-        MultiplyMatrix(translation, ModelMatrixOther[i], ModelMatrixOther[i]);
-        MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixOther[i], ModelMatrixOther[i]);
-
+	MultiplyMatrix(RotationMatrixAnimRound, ModelMatrixOther[i], ModelMatrixOther[i]);
     }
 
 
@@ -671,6 +654,8 @@ void SetupTexture(void)
 {
     // Load the texture from bmp
     TextureID = loadBMP_custom("data/floor.bmp");
+    
+    TextureID_2 = loadBMP_custom("data/grass.bmp");
 
     // Get a handle for our "myTextureSampler" uniform
     TextureUniform  = glGetUniformLocation(ShaderProgram, "myTextureSampler");
@@ -691,12 +676,12 @@ void initLights() {
     /* the outside light, it should look kind of like a sun */
     fixedLight.color = glm::vec3(1.0f, 1.0f, 0.0f); //yellow
     fixedLight.position = glm::vec3(0.0f, 5.0f, 1.0f);
-    fixedLight.intensity = 20;
+    fixedLight.intensity = 10;
 
     /* the moving light */
     movingLight.color = glm::vec3(1.0f, 1.0f, 1.0f); //white
     movingLight.position = glm::vec3(0.0f, 2.0f, 4.0f);
-    movingLight.intensity = 10;
+    movingLight.intensity = 5;
 }
 
 /******************************************************************
@@ -720,7 +705,7 @@ void Initialize(void)
     glDepthFunc(GL_LESS);
 
     // Cull triangles which normal is not towards the camera
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
 
     /* Setup shaders and shader program */
     CreateShaderProgram();
